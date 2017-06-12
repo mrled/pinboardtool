@@ -1,0 +1,9 @@
+{
+  "devDependencies": {
+    "@types/argparse": "^1.0.30",
+    "@types/node": "^7.0.29"
+  },
+  "dependencies": {
+    "argparse": "^1.0.9"
+  }
+}
