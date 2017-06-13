@@ -59,7 +59,7 @@ export class PinboardTags {
 export class Pinboard {
     public posts: PinboardPosts;
     public tags: PinboardTags;
-    public baseUrlOpts = new RequestOptions('api.pinboard.in', ['v1']);
+    public baseUrlOpts = new RequestOptions({host: 'api.pinboard.in', basePath: ['v1']});
 
     constructor(apitoken: string) {
         this.baseUrlOpts.queryParams.push(
