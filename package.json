@@ -1,7 +1,8 @@
 {
   "devDependencies": {
     "@types/argparse": "^1.0.30",
-    "@types/node": "^7.0.29"
+    "@types/node": "^7.0.29",
+    "argparse": "^1.0.9"
   },
   "dependencies": {
     "argparse": "^1.0.9"

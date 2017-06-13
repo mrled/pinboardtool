@@ -3,6 +3,10 @@ import https = require('https');
 import path = require('path');
 import { ArgumentParser } from "argparse";
 
+class QueryParameter {
+    constructor(public name: string, public value: string) {}
+}
+
 /* A class that can be passed to httpRequest()
  * Note that it is also passable directly to node's https.request()
  */
@@ -12,22 +16,22 @@ class RequestOptions {
         public basePath: string[],
         public protocol: string = "https:",
         public port: number = 443,
-        public urlArguments: {string?: string} = {},
+        public parseJson: boolean = false,
+        public queryParams: QueryParameter[] = [],
         public method: string = 'GET',
         public postData?: string
     ) {}
 
     get path(): string {
-        return `/${this.basePath.join('/')}${this.urlArgumentsString}`;
+        return `/${this.basePath.join('/')}${this.urlParametersString}`;
     }
 
-    get urlArgumentsString(): string {
+    get urlParametersString(): string {
         var uas = "";
-        for (var key in this.urlArguments) {
-            var initChar = (uas.length == 0) ? '?' : '&';
-            var thisArgStr = `${key}=${this.urlArguments[key]}`;
-            uas += `${initChar}${thisArgStr}`;
-        }
+        this.queryParams.forEach((parameter) => {
+            if (uas.length === 0) { uas += '?'; } else { uas += '&'; }
+            uas += `${parameter.name}=${parameter.value}`;
+        });
         return uas;
     }
 
@@ -36,11 +40,24 @@ class RequestOptions {
     }
 
     clone(): RequestOptions {
-        return new RequestOptions(this.host, this.basePath, this.protocol, this.port, this.urlArguments, this.method, this.postData);
+        var newBasePath: string[] = [],
+            newUrlParams: QueryParameter[] = [];
+        this.basePath.forEach((bp) => { newBasePath.push(bp); });
+        this.queryParams.forEach((up) => { newUrlParams.push(up); });
+        // for (var k in this.urlArguments) { newUrlArgs[k] = this.urlArguments[k] };
+        return new RequestOptions(
+            this.host,
+            newBasePath,
+            this.protocol,
+            this.port,
+            this.parseJson,
+            newUrlParams,
+            this.method,
+            this.postData);
     }
 
     // Turns out, having path be a computed property in TypeScript doesn't work for https.request()
-    get nodeRequestOpts(): any {
+    get nodeRequestOpts(): object {
         return {
             host: this.host,
             path: this.path,
@@ -66,7 +83,11 @@ function httpsRequest(options: RequestOptions) {
                 if (rejecting) {
                     reject(new Error(`ERROR ${res.statusCode} when attempting to ${options.method} '${options.fullUrl}'\r\n${b}`));
                 } else {
-                    resolve(b);
+                    if (options.parseJson) {
+                        resolve(JSON.parse(b));
+                    } else {
+                        resolve(b);
+                    }
                 }
             });
         });
@@ -81,25 +102,78 @@ function httpsRequest(options: RequestOptions) {
 class PinboardPosts {
     public noun = "posts";
     public urlOpts: RequestOptions;
-    constructor(private baseUrlOpts: RequestOptions) {
-        this.urlOpts = this.baseUrlOpts;
+    constructor(baseUrlOpts: RequestOptions) {
+        this.urlOpts = baseUrlOpts;
         this.urlOpts.basePath.push(this.noun);
     }
 
     public update(): Promise<Date> {
         var opts = this.urlOpts.clone();
         opts.basePath.push('update');
-        return httpsRequest(opts) as Promise<Date>;
+        return httpsRequest(opts);
+    }
+
+    public get(tag: string[] = [], date?: Date, url?: string, meta: Boolean = false): Promise<any> {
+        var opts = this.urlOpts.clone();
+        opts.basePath.push('get');
+        tag.forEach((t) => { opts.queryParams.push(new QueryParameter('tag', t)); });
+        if (date) { opts.queryParams.push(new QueryParameter('dt', Pinboard.dateFormatter(date))); }
+        if (url) { opts.queryParams.push(new QueryParameter('url', url)); }
+        opts.queryParams.push(new QueryParameter('meta', meta ? "yes" : "no"));
+        return httpsRequest(opts);
+    }
+
+    public recent(tag: string[] = [], count?: number): Promise<any> {
+        if (tag.length > 3) {
+            throw "Only three tags are supported for this request";
+        }
+        if (count > 100 || count < 0) {
+            throw `Invalid value for 'count': '${count}'. Must be between 0-100.`
+        }
+        var opts = this.urlOpts.clone();
+        opts.basePath.push('recent');
+        tag.forEach((t) => { opts.queryParams.push(new QueryParameter('tag', t)); });
+        if (count) {
+            opts.queryParams.push(new QueryParameter('count', String(count)));
+        }
+        return httpsRequest(opts);
+    }
+}
+
+class PinboardTags {
+    public noun = "tags";
+    public urlOpts: RequestOptions;
+    constructor(baseUrlOpts: RequestOptions) {
+        this.urlOpts = baseUrlOpts;
+        this.urlOpts.basePath.push(this.noun);
+    }
+
+    public get(): Promise<object> {
+        var opts = this.urlOpts.clone();
+        opts.basePath.push('get');
+        return httpsRequest(opts);
     }
 }
 
 class Pinboard {
+    public posts: PinboardPosts;
+    public tags: PinboardTags;
     public baseUrlOpts = new RequestOptions('api.pinboard.in', ['v1']);
+
     constructor(apitoken: string) {
-        this.baseUrlOpts.urlArguments['auth_token'] = apitoken;
-        this.baseUrlOpts.urlArguments['format'] = 'json';
+        this.baseUrlOpts.queryParams.push(
+            new QueryParameter('auth_token', apitoken),
+            new QueryParameter('format', 'json')
+        );
+        this.baseUrlOpts.parseJson = true;
+
+        this.posts = new PinboardPosts(this.baseUrlOpts.clone());
+        this.tags = new PinboardTags(this.baseUrlOpts.clone());
     }
-    public posts = new PinboardPosts(this.baseUrlOpts.clone());
+
+    public static dateFormatter(date: Date): string {
+        return date.toISOString();
+    }
 }
 
 class Startup {
@@ -138,13 +212,21 @@ class Startup {
         }
 
         var pinboard = new Pinboard(config.apitoken);
-        pinboard.posts.update().then((result) => {
-            console.log(result)
-        }).catch((error) => {
-            console.log(`ERROR!\r\n${error}`);
-        });
+        this.promisePrinter(pinboard.posts.update());
+        // this.promisePrinter(pinboard.tags.get());
+        // this.promisePrinter(pinboard.posts.recent(['gamepc']));
+        // this.promisePrinter(pinboard.posts.get([], new Date('2017-06-11')));
 
         return 0;
+    }
+
+    public static promisePrinter(prom: Promise<any>): void {
+        prom.then((result) => {
+            console.log(result);
+        }).catch((error) => {
+            console.log(`ERROR!\r\n${error}`);
+            process.exit(1);
+        })
     }
 }
 
