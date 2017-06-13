@@ -1,17 +1,17 @@
-import { RequestOptions, QueryParameter, simpleHttpsRequest } from "./shr";
+import { RequestOptions, QueryParameter, SimpleHttpsRequest, HttpsRequest } from "./shr";
 
 export class PinboardPosts {
     public noun = "posts";
     public urlOpts: RequestOptions;
-    constructor(baseUrlOpts: RequestOptions, private httpsRequest: (RequestOptions) => Promise<any> = simpleHttpsRequest) {
+    constructor(baseUrlOpts: RequestOptions, private request: SimpleHttpsRequest = new HttpsRequest()) {
         this.urlOpts = baseUrlOpts;
         this.urlOpts.basePath.push(this.noun);
     }
 
-    public update(): Promise<Date> {
+    public update(): Promise<any> {
         var opts = this.urlOpts.clone();
         opts.basePath.push('update');
-        return this.httpsRequest(opts);
+        return this.request.req(opts);
     }
 
     public get(tag: string[] = [], date?: Date, url?: string, meta: Boolean = false): Promise<any> {
@@ -21,7 +21,7 @@ export class PinboardPosts {
         if (date) { opts.queryParams.push(new QueryParameter('dt', Pinboard.dateFormatter(date))); }
         if (url) { opts.queryParams.push(new QueryParameter('url', url)); }
         opts.queryParams.push(new QueryParameter('meta', meta ? "yes" : "no"));
-        return this.httpsRequest(opts);
+        return this.request.req(opts);
     }
 
     public recent(tag: string[] = [], count?: number): Promise<any> {
@@ -37,14 +37,14 @@ export class PinboardPosts {
         if (count) {
             opts.queryParams.push(new QueryParameter('count', String(count)));
         }
-        return this.httpsRequest(opts);
+        return this.request.req(opts);
     }
 }
 
 export class PinboardTags {
     public noun = "tags";
     public urlOpts: RequestOptions;
-    constructor(baseUrlOpts: RequestOptions, private httpsRequest: (RequestOptions) => Promise<any> = simpleHttpsRequest) {
+    constructor(baseUrlOpts: RequestOptions, private request: SimpleHttpsRequest = new HttpsRequest()) {
         this.urlOpts = baseUrlOpts;
         this.urlOpts.basePath.push(this.noun);
     }
@@ -52,7 +52,7 @@ export class PinboardTags {
     public get(): Promise<object> {
         var opts = this.urlOpts.clone();
         opts.basePath.push('get');
-        return this.httpsRequest(opts);
+        return this.request.req(opts);
     }
 }
 

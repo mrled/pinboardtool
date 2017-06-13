@@ -22,12 +22,15 @@ export interface RequestOptionsParameters {
  * Note that it is also passable directly to node's https.request()
  */
 export class RequestOptions {
+    // The following properties are assembled into the .path computed property
     public host: string;
     public basePath: string[];
     public protocol: string;
     public port: number;
-    public parseJson: boolean;
     public queryParams: QueryParameter[];
+
+    // Remaining properties are not included in the .path computed property
+    public parseJson: boolean;
     public method: string;
     public postData?: string;
 
@@ -75,6 +78,13 @@ export class RequestOptions {
         return ro;
     }
 
+    equals(opts: RequestOptions): boolean {
+        return this.path === opts.path &&
+            this.parseJson === opts.parseJson &&
+            this.method === opts.method &&
+            this.postData === opts.postData;
+    }
+
     // Turns out, having path be a computed property in TypeScript doesn't work for https.request()
     get nodeRequestOpts(): object {
         return {
@@ -87,33 +97,39 @@ export class RequestOptions {
     }
 }
 
-export function simpleHttpsRequest(options: RequestOptions): Promise<any> {
-    return new Promise<any>((resolve, reject) => {
-        var rejecting = false;
-        var ro = options.nodeRequestOpts;
-        var req = https.request(ro, (res) => {
-            if (res.statusCode < 200 || res.statusCode >= 300) { rejecting = true; }
+export interface SimpleHttpsRequest {
+    req(options: RequestOptions): Promise<any>;
+}
 
-            var body = [];
-            res.on('data', (chunk) => body.push(chunk));
+export class HttpsRequest implements SimpleHttpsRequest {
+    req(options: RequestOptions): Promise<any> {
+        return new Promise<any>((resolve, reject) => {
+            var rejecting = false;
+            var ro = options.nodeRequestOpts;
+            var req = https.request(ro, (res) => {
+                if (res.statusCode < 200 || res.statusCode >= 300) { rejecting = true; }
 
-            res.on('end', () => {
-                var b = Buffer.concat(body).toString();
-                if (rejecting) {
-                    reject(new Error(`ERROR ${res.statusCode} when attempting to ${options.method} '${options.fullUrl}'\r\n${b}`));
-                } else {
-                    if (options.parseJson) {
-                        resolve(JSON.parse(b));
+                var body = [];
+                res.on('data', (chunk) => body.push(chunk));
+
+                res.on('end', () => {
+                    var b = Buffer.concat(body).toString();
+                    if (rejecting) {
+                        reject(new Error(`ERROR ${res.statusCode} when attempting to ${options.method} '${options.fullUrl}'\r\n${b}`));
                     } else {
-                        resolve(b);
+                        if (options.parseJson) {
+                            resolve(JSON.parse(b));
+                        } else {
+                            resolve(b);
+                        }
                     }
-                }
+                });
             });
+
+            req.on('error', (err) => reject(err));
+            if (options.postData) { req.write(options.postData); }
+
+            req.end();
         });
-
-        req.on('error', (err) => reject(err));
-        if (options.postData) { req.write(options.postData); }
-
-        req.end();
-    });
+    }
 }
