@@ -1,4 +1,4 @@
-import { QuickTestGroup, QuickTestResult, quickTestMain } from "./quicktest";
+import { QuickTest, QuickTestGroup, quickTestMain } from "./quicktest";
 import { Pinboard, PinboardPosts, PinboardTags } from "./pbsdk";
 import { RequestOptions, QueryParameter } from "./shr";
 import { ShrMockerIoPair, ShrMocker } from "./shr.mocks";
@@ -25,8 +25,8 @@ class TestPinboardPosts extends QuickTestGroup {
         this.pinboardPosts = new PinboardPosts(this.baseUrlOpts, this.shrMocker)
     }
 
-    tests = {
-        'pinboardPostsUpdate': () => {
+    tests = [
+        new QuickTest('PinboardPostsUpdate', () => {
             return this.pinboardPosts.update().then(result => {
                 if (result === this.expectedResponse) {
                     Promise.resolve(true);
@@ -34,11 +34,11 @@ class TestPinboardPosts extends QuickTestGroup {
                     Promise.reject(false);
                 }
             });
-        },
-        'exampleTestFailure': () => {
+        }),
+        new QuickTest('ExampleTestFailure', () => {
             throw "example thrown error";
-        }
-    };
+        })
+    ]
 }
 
 quickTestMain([
