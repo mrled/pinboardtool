@@ -1,13 +1,9 @@
-import assert = require('assert');
+import { QuickTestGroup, QuickTestResult, quickTestMain } from "./quicktest";
 import { Pinboard, PinboardPosts, PinboardTags } from "./pbsdk";
 import { RequestOptions, QueryParameter } from "./shr";
 import { ShrMockerIoPair, ShrMocker } from "./shr.mocks";
 
-abstract class Test {
-    abstract test(): Promise<any>;
-}
-
-class TestPinboardPostsUpdate extends Test {
+class TestPinboardPosts extends QuickTestGroup {
     tAuthToken = "EXAMPLEAUTHTOKEN";
     tHost = "example.com";
     tBasePath = [];
@@ -15,6 +11,7 @@ class TestPinboardPostsUpdate extends Test {
     baseUrlOpts: RequestOptions;
     shrMocker: ShrMocker;
     pinboardPosts: PinboardPosts;
+    expectedResponse = "{ update_time: '2017-06-12T15:50:00Z' }"
 
     constructor() {
         super();
@@ -22,35 +19,28 @@ class TestPinboardPostsUpdate extends Test {
         this.shrMocker = new ShrMocker([
             new ShrMockerIoPair(
                 {host: 'example.com', basePath: ['posts', 'update'], queryParams: this.tQueryParams},
-                "YAY")
+                this.expectedResponse)
         ]);
         this.baseUrlOpts = new RequestOptions({host: this.tHost, basePath: this.tBasePath, queryParams: this.tQueryParams})
         this.pinboardPosts = new PinboardPosts(this.baseUrlOpts, this.shrMocker)
     }
 
-    test(): Promise<any> {
-        return Promise.all([this.pinboardPosts.update(), Promise.resolve("YAY")]).then(values => {
-            if (values[0] === values[1]) {
-                Promise.resolve(true);
-            }
-            console.log(`Tested values '${values[0]}' and '${values[1]}' did not match`);
-            Promise.reject(false);
-        });
-    }
+    tests = {
+        'pinboardPostsUpdate': () => {
+            return this.pinboardPosts.update().then(result => {
+                if (result === this.expectedResponse) {
+                    Promise.resolve(true);
+                } else {
+                    Promise.reject(false);
+                }
+            });
+        },
+        'exampleTestFailure': () => {
+            throw "example thrown error";
+        }
+    };
 }
 
-class Startup {
-    public static main(): number {
-        var tests = new TestPinboardPostsUpdate();
-        var ret = 0;
-        tests.test().then(result => {
-            console.log('Tests passed successfully!');
-        }).catch(error => {
-            ret = 1;
-            console.log(`TESTS FAILED: ${error}`);
-        })
-        return ret;
-    }
-}
-
-Startup.main();
+quickTestMain([
+    new TestPinboardPosts()
+]);
