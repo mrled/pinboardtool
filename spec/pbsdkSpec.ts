@@ -10,19 +10,28 @@ describe("PinboardPosts", () => {
     let basePath = [];
     let queryParams = [new QueryParameter('auth_token', authToken), new QueryParameter('format', 'json')];
     let baseUrlOpts = new RequestOptions({host: host, basePath: basePath, queryParams: queryParams})
-    let expectedResponse = "{ update_time: '2017-06-12T15:50:00Z' }";
-    let mocker = new ShrMocker([
-        new ShrMockerIoPair(
-            {host: host, basePath: ['posts', 'update'], queryParams: queryParams},
-            expectedResponse
-        )
-    ])
-    let pinboardPosts = new PinboardPosts(baseUrlOpts, mocker)
+
     describe(".update()", () => {
+
+        let updateTime = "2017-06-12T15:50:00Z";
+        let expectedResponse = `{ "update_time": "${updateTime}" }`;
+        let mocker = new ShrMocker([
+            new ShrMockerIoPair(
+                {host: host, basePath: ['posts', 'update'], queryParams: queryParams},
+                JSON.parse(expectedResponse)
+            )
+        ])
+        let pinboardPosts = new PinboardPosts(baseUrlOpts, mocker)
+
         it("Returns expected data", (done) => {
             pinboardPosts.update().then(result => {
-                expect(result).toBe(expectedResponse);
+                expect(result).toEqual(new Date (updateTime));
                 done();
+            }, error => {
+                console.log(`ERROR: ${error}`);
+                for (var key in error) {
+                    console.log(`  ${key} = ${error[key]}`)
+                }
             });
         })
         // ,it("Fails with this test", (done) => {

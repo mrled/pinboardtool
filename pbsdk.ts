@@ -8,10 +8,12 @@ export class PinboardPosts {
         this.urlOpts.basePath.push(this.noun);
     }
 
-    public update(): Promise<any> {
+    public update(): Promise<Date> {
         var opts = this.urlOpts.clone();
         opts.basePath.push('update');
-        return this.request.req(opts);
+        return this.request.req(opts).then(result => {
+            return new Date(result.update_time);
+        });
     }
 
     public get(tag: string[] = [], date?: Date, url?: string, meta: Boolean = false): Promise<any> {
