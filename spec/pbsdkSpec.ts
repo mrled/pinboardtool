@@ -1,6 +1,6 @@
 /// <reference path="../node_modules/@types/jasmine/index.d.ts" />
 
-import { Pinboard, PinboardPosts, PinboardTags } from "../pbsdk";
+import { Pinboard, PinboardPostsEndpoint, PinboardTagsEndpoint } from "../pbsdk";
 import { RequestOptions, QueryParameter } from "../shr";
 import { ShrMockerIoPair, ShrMocker } from "../shr.mocks";
 
@@ -21,7 +21,7 @@ describe("PinboardPosts", () => {
                 expectedResponse
             )
         ])
-        let pinboardPosts = new PinboardPosts(baseUrlOpts, mocker)
+        let pinboardPosts = new PinboardPostsEndpoint(baseUrlOpts, mocker)
 
         it("Returns expected data", (done) => {
             pinboardPosts.update().then(result => {

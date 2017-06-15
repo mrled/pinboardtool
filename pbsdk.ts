@@ -1,6 +1,10 @@
 import { RequestOptions, QueryParameter, SimpleHttpsRequest, HttpsRequest } from "./shr";
 
-export class PinboardPosts {
+export class PinboardTag {
+    constructor(public name: string, public count: number) {}
+}
+
+export class PinboardPostsEndpoint {
     public noun = "posts";
     public urlOpts: RequestOptions;
     constructor(baseUrlOpts: RequestOptions, private request: SimpleHttpsRequest = new HttpsRequest()) {
@@ -43,7 +47,7 @@ export class PinboardPosts {
     }
 }
 
-export class PinboardTags {
+export class PinboardTagsEndpoint {
     public noun = "tags";
     public urlOpts: RequestOptions;
     constructor(baseUrlOpts: RequestOptions, private request: SimpleHttpsRequest = new HttpsRequest()) {
@@ -51,16 +55,22 @@ export class PinboardTags {
         this.urlOpts.basePath.push(this.noun);
     }
 
-    public get(): Promise<object> {
+    public get(): Promise<PinboardTag[]> {
         var opts = this.urlOpts.clone();
         opts.basePath.push('get');
-        return this.request.req(opts);
+        return this.request.req(opts).then(tagObj => {
+            let tags: PinboardTag[] = [];
+            for (var tagName in tagObj) {
+                tags.push(new PinboardTag(tagName, tagObj[tagName]));
+            }
+            return tags;
+        });
     }
 }
 
 export class Pinboard {
-    public posts: PinboardPosts;
-    public tags: PinboardTags;
+    public posts: PinboardPostsEndpoint;
+    public tags: PinboardTagsEndpoint;
     public baseUrlOpts = new RequestOptions({host: 'api.pinboard.in', basePath: ['v1']});
 
     constructor(apitoken: string) {
@@ -70,8 +80,8 @@ export class Pinboard {
         );
         this.baseUrlOpts.parseJson = true;
 
-        this.posts = new PinboardPosts(this.baseUrlOpts.clone());
-        this.tags = new PinboardTags(this.baseUrlOpts.clone());
+        this.posts = new PinboardPostsEndpoint(this.baseUrlOpts.clone());
+        this.tags = new PinboardTagsEndpoint(this.baseUrlOpts.clone());
     }
 
     public static dateFormatter(date: Date): string {
