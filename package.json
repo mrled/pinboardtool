@@ -1,15 +1,18 @@
 {
   "devDependencies": {
     "@types/argparse": "^1.0.30",
+    "@types/jasmine": "^2.5.52",
     "@types/node": "^7.0.29",
-    "argparse": "^1.0.9"
+    "argparse": "^1.0.9",
+    "jasmine": "^2.6.0"
   },
   "dependencies": {
     "argparse": "^1.0.9"
   },
-  "scripts":{
+  "scripts": {
     "build": "tsc",
     "start": "npm run build && node pbt.js",
-    "test": "npm run build && node pbt.test.js"
+    "test": "npm run build && jasmine",
+    "jasmine": "jasmine"
   }
 }
