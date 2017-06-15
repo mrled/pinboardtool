@@ -19,7 +19,7 @@ class Startup {
             help: 'Pinboard API token; if unspecified, use PINBOARD_API_TOKEN environment variable'
         });
         parser.addArgument(['action'], {
-            choices: ['least-used-tags', 'last-update'],
+            choices: ['all-tags', 'least-used-tags', 'last-update'],
             help: 'The action'
         })
 
@@ -52,14 +52,18 @@ class Startup {
         };
 
         switch (parsed.action) {
+            case 'all-tags': {
+                pinboard.tags.get().then(tags => tags.forEach(tag => console.log(tag)), handleApiFailure);
+            }
             case 'least-used-tags': {
+                let cutoff = 5; // Show only tags with fewer than 5 bookmarks
                 pinboard.tags.get().then(tags => {
                     tags.sort((a, b) => a.count - b.count);
-                    tags.forEach(tag => console.log(tag));
+                    tags.filter((tag) => tag.count < cutoff).forEach(tag => console.log(tag));
                 }, handleApiFailure);
             }
             case 'last-update': {
-                pinboard.posts.update().then(result => console.log(`Last update time: ${result.toString()}`));
+                pinboard.posts.update().then(result => console.log(`Last update time: ${result.toString()}`), handleApiFailure);
             }
         }
 
