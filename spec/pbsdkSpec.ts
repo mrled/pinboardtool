@@ -14,11 +14,11 @@ describe("PinboardPosts", () => {
     describe(".update()", () => {
 
         let updateTime = "2017-06-12T15:50:00Z";
-        let expectedResponse = `{ "update_time": "${updateTime}" }`;
+        let expectedResponse = { update_time: updateTime};
         let mocker = new ShrMocker([
             new ShrMockerIoPair(
                 {host: host, basePath: ['posts', 'update'], queryParams: queryParams},
-                JSON.parse(expectedResponse)
+                expectedResponse
             )
         ])
         let pinboardPosts = new PinboardPosts(baseUrlOpts, mocker)

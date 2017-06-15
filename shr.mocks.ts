@@ -3,7 +3,10 @@ import { RequestOptions, RequestOptionsParameters, SimpleHttpsRequest } from './
 // Functions we can use to test consumers of this library
 export class ShrMockerIoPair {
     public opts: RequestOptions;
-    constructor(optsParams: RequestOptionsParameters, public result: string) {
+    constructor(
+        optsParams: RequestOptionsParameters,
+        public result: string | object // Allow object to simulate automatic parsing of server's JSON response
+    ) {
         this.opts = new RequestOptions(optsParams);
     }
 }
