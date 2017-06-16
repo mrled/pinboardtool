@@ -29,10 +29,17 @@ class Startup {
         });
 
         let tagsParser = subParsers.addParser('tags');
-        tagsParser.addArgument(['--least-used', '-l'], {
+        let tagsSubparsers = tagsParser.addSubparsers({title: 'tags', dest: 'verb'});
+
+        let tagsGetParser = tagsSubparsers.addParser('get', {help: 'Get all tags.'});
+        tagsGetParser.addArgument(['--least-used', '-l'], {
             type: 'int',
-            help: 'Show tags with fewer than this many bookmarks'
+            help: 'Show tags with this many or fewer bookmarks'
         });
+
+        let tagsRenameParser = tagsSubparsers.addParser('rename', {help: 'Rename a tag.'});
+        tagsRenameParser.addArgument(['old'], {help: 'The tag to rename'});
+        tagsRenameParser.addArgument(['new'], {help: 'The new name of the tag'});
 
         let postsParser = subParsers.addParser('posts');
         let postsSubparsers = postsParser.addSubparsers({title: 'posts', dest: 'verb'});
@@ -75,9 +82,7 @@ class Startup {
             help: 'Return only bookmarks created before this time.'
         });
 
-        let postsExclusiveGroup = postsParser.addMutuallyExclusiveGroup({required: false});
-        postsExclusiveGroup.addArgument(['--last-update', '-l'], {
-            nargs: 0,
+        let postsUpdateParser = postsSubparsers.addParser('update', {
             help: 'Show the most recent time a bookmark was added, updated, or deleted. (Intended to be used before calling /posts/all to see if data has changed since the last fetch.)'
         });
 
@@ -117,12 +122,21 @@ class Startup {
                         if (parsed.least_used) {
                             pinboard.tags.get().then(tags => {
                                 tags.sort((a, b) => a.count - b.count);
-                                tags.filter(tag => tag.count <= parsed.least_used).forEach(tag => console.log(tag));
+                                let filteredTags = tags.filter(tag => tag.count <= parsed.least_used);
+                                filteredTags.forEach(tag => console.log(tag));
+                                console.log(`There are ${filteredTags.length} tags with ${parsed.least_used} or fewer bookmarks`);
                             }, handleApiFailure);
                         } else {
                             // Show all tags
-                            pinboard.tags.get().then(tags => tags.forEach(tag => console.log(tag)), handleApiFailure);
+                            pinboard.tags.get().then(tags => {
+                                tags.forEach(tag => console.log(tag));
+                                console.log(`Tag count: ${tags.length}`);
+                            }, handleApiFailure);
                         }
+                        break;
+                    }
+                    case 'rename': {
+                        pinboard.tags.rename(parsed.old, parsed.new).then(result => console.log(result));
                         break;
                     }
                     default: throw `Unknown verb ${parsed.verb}`;

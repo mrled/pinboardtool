@@ -161,6 +161,17 @@ export class PinboardTagsEndpoint {
             return tags;
         });
     }
+
+    public rename(oldName: string, newName: string): Promise<any> {
+        var opts = this.urlOpts.clone();
+        opts.basePath.push('rename');
+        opts.queryParams.push(new QueryParameter('old', oldName));
+        opts.queryParams.push(new QueryParameter('new', newName));
+        return this.request.req(opts).then(result => {
+            debugLog(`Got result: ${result}`);
+            return result;
+        });
+    }
 }
 
 export class Pinboard {
