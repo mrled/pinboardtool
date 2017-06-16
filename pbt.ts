@@ -119,20 +119,16 @@ class Startup {
             case 'tags': {
                 switch (parsed.verb) {
                     case 'get': {
-                        if (parsed.least_used) {
-                            pinboard.tags.get().then(tags => {
+                        pinboard.tags.get().then(tags => {
+                            let msg = `There are ${tags.length} tags`;
+                            if (parsed.least_used) {
                                 tags.sort((a, b) => a.count - b.count);
-                                let filteredTags = tags.filter(tag => tag.count <= parsed.least_used);
-                                filteredTags.forEach(tag => console.log(tag));
-                                console.log(`There are ${filteredTags.length} tags with ${parsed.least_used} or fewer bookmarks`);
-                            }, handleApiFailure);
-                        } else {
-                            // Show all tags
-                            pinboard.tags.get().then(tags => {
-                                tags.forEach(tag => console.log(tag));
-                                console.log(`Tag count: ${tags.length}`);
-                            }, handleApiFailure);
-                        }
+                                tags = tags.filter(tag => tag.count <= parsed.least_used);
+                                msg = `There are ${tags.length} tags with ${parsed.least_used} or fewer bookmarks`;
+                            }
+                            tags.forEach(tag => console.log(tag));
+                            console.log(msg);
+                        }, handleApiFailure);
                         break;
                     }
                     case 'rename': {
