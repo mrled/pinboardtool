@@ -13,6 +13,9 @@ export class QueryParameter {
         this.name = encodeURIComponent(name);
         this.value = encodeURIComponent(value);
     }
+    public clone(): QueryParameter {
+        return new QueryParameter(this.name, this.value);
+    }
 }
 
 export interface RequestOptionsParameters {

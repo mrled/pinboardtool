@@ -9,7 +9,7 @@ describe("Pinboard", () => {
     let host = "example.com";
     let basePath = [];
     let queryParams = [new QueryParameter('auth_token', authToken), new QueryParameter('format', 'json')];
-    let baseUrlOpts = new RequestOptions({host: host, basePath: [], queryParams: queryParams})
+    let baseUrlOpts = new RequestOptions({host: host, basePath: [], queryParams: queryParams});
 
     describe("PinboardPostsEndpoint", ()=>{
 
@@ -22,8 +22,8 @@ describe("Pinboard", () => {
                     {host: host, basePath: ['posts', 'update'], queryParams: queryParams},
                     expectedResponse
                 )
-            ])
-            var pinboardPosts = new PinboardPostsEndpoint(baseUrlOpts, mocker)
+            ]);
+            var pinboardPosts = new PinboardPostsEndpoint(baseUrlOpts, mocker);
 
             it("Returns expected data", (done) => {
                 pinboardPosts.update().then(result => {
@@ -32,7 +32,7 @@ describe("Pinboard", () => {
                 }, error => {
                     console.log(`ERROR: ${error}`);
                     for (var key in error) {
-                        console.log(`  ${key} = ${error[key]}`)
+                        console.log(`  ${key} = ${error[key]}`);
                     }
                 });
             })
@@ -51,7 +51,7 @@ describe("Pinboard", () => {
     describe("PinboardTagsEndpoint", ()=>{
         describe(".get()", ()=>{
             var expectedResponse = { '': 1000, mpegs: 324, perversions: 876, 'parts:tits': 123, 'parts:ass': 104};
-            var expectedTags: PinboardTag[] = []
+            var expectedTags: PinboardTag[] = [];
             for (var tagName in expectedResponse) {
                 expectedTags.push(new PinboardTag(tagName, expectedResponse[tagName]));
             }
@@ -68,9 +68,34 @@ describe("Pinboard", () => {
                     expect(tags).toEqual(expectedTags);
                     done();
                 });
-            })
+            });
 
-        })
-    })
+        });
+
+        describe(".rename()", () =>{
+            let expectedResponse = { result: 'done' };
+            let renameQp: QueryParameter[] = [];
+            queryParams.forEach(qp => renameQp.push(qp.clone()));
+            let oldName = 'exampleOldTagName',
+                newName = 'exampleNewTagname';
+            renameQp.push(new QueryParameter('old', oldName));
+            renameQp.push(new QueryParameter('new', newName));
+            var mocker = new ShrMocker([
+                new ShrMockerIoPair(
+                    {host: host, basePath: ['tags', 'rename'], queryParams: renameQp},
+                    expectedResponse
+                )
+            ]);
+            var pinboardTags = new PinboardTagsEndpoint(baseUrlOpts, mocker);
+
+            it("Should return done", done => {
+                pinboardTags.rename(oldName, newName).then(result => {
+                    expect(result).toEqual(expectedResponse);
+                    done();
+                });
+            });
+        });
+
+    });
 
 });
