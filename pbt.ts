@@ -1,9 +1,12 @@
 import fs = require('fs');
 import path = require('path');
+
+import debug = require('debug');
+let debugLog = debug('pbt');
 import { ArgumentParser } from "argparse";
 import ArgParseModule = require('argparse');
 
-import { Pinboard, PinboardTag } from "./pbsdk";
+import { Pinboard } from "./pbsdk";
 
 class Startup {
     public static main(): number {
@@ -79,7 +82,7 @@ class Startup {
         });
 
         let parsed = parser.parseArgs();
-        console.log(parsed)
+        debugLog(parsed);
 
         if (! parsed.configfile) {
             homeConfig = path.join(process.env['HOME'], '.pbt.config.json');

@@ -1,3 +1,6 @@
+import debug = require('debug');
+let debugLog = debug('shr');
+
 import { RequestOptions, RequestOptionsParameters, SimpleHttpsRequest } from './shr';
 
 // Functions we can use to test consumers of this library
@@ -16,10 +19,11 @@ export class ShrMocker implements SimpleHttpsRequest {
 
     }
 
-    req(reqOpts: RequestOptions): Promise<any> {
+    req(options: RequestOptions): Promise<any> {
+        debugLog(`${options.method} ${options.fullUrl}`);
         var match: Promise<any>;
         this.ioPairs.forEach((pair) => {
-            if (reqOpts.equals(pair.opts)) {
+            if (options.equals(pair.opts)) {
                 match = Promise.resolve(pair.result);
                 return;
             }
@@ -27,7 +31,7 @@ export class ShrMocker implements SimpleHttpsRequest {
         if (typeof match !== 'undefined') {
             return match;
         } else {
-            throw `Passed options (url: ${reqOpts.fullUrl}) do not match any known input/output pair`;
+            throw `Passed options (url: ${options.fullUrl}) do not match any known input/output pair`;
         }
     }
 }

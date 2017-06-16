@@ -3,6 +3,9 @@
 
 import https = require('https');
 
+import debug = require('debug');
+let debugLog = debug('shr');
+
 export class QueryParameter {
     constructor(public name: string, public value: string) {}
 }
@@ -103,6 +106,7 @@ export interface SimpleHttpsRequest {
 
 export class HttpsRequest implements SimpleHttpsRequest {
     req(options: RequestOptions): Promise<any> {
+        debugLog(`${options.method} ${options.fullUrl}`);
         return new Promise<any>((resolve, reject) => {
             var rejecting = false;
             var ro = options.nodeRequestOpts;

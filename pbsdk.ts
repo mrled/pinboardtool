@@ -1,4 +1,22 @@
+import debug = require('debug');
+let debugLog = debug('pbsdk');
+
 import { RequestOptions, QueryParameter, SimpleHttpsRequest, HttpsRequest } from "./shr";
+
+export class PinboardData {
+    public static boolean(input: string | number): boolean {
+        if (input === 'yes' || input === 'true' || input === 1) {
+            return true;
+        } else if (input === 'no' || input === 'false' || input === 0) {
+            return false;
+        } else {
+            throw `Unable to parse '${input}'`
+        }
+    }
+    public static dateFormatter(date: Date): string {
+        return date.toISOString();
+    }
+}
 
 export class PinboardTag {
     public count: number;
@@ -19,7 +37,7 @@ export class PinboardPost {
         public toread: boolean,
         public tags: PinboardTag[] = []
     ) {}
-    static fromObj(opts: any) {
+    static fromObj(opts: any): PinboardPost {
         let post = new PinboardPost(
             opts.href,
             opts.description,
@@ -27,8 +45,8 @@ export class PinboardPost {
             opts.meta,
             opts.hash,
             new Date(opts.time),
-            opts.shared === 'yes' ? true : false,
-            opts.toread === 'yes' ? true : false)
+            PinboardData.boolean(opts.shared),
+            PinboardData.boolean(opts.toread))
         opts.tags.split(' ').forEach(tagName => post.tags.push(new PinboardTag(tagName)));
         return post;
     }
@@ -45,7 +63,10 @@ export class PinboardPostCollection {
 export class PinboardPostsEndpoint {
     public noun = "posts";
     public urlOpts: RequestOptions;
-    constructor(baseUrlOpts: RequestOptions, private request: SimpleHttpsRequest = new HttpsRequest()) {
+    constructor(
+        baseUrlOpts: RequestOptions,
+        private request: SimpleHttpsRequest = new HttpsRequest()
+    ) {
         this.urlOpts = baseUrlOpts.clone();
         this.urlOpts.basePath.push(this.noun);
     }
@@ -54,24 +75,26 @@ export class PinboardPostsEndpoint {
         var opts = this.urlOpts.clone();
         opts.basePath.push('update');
         return this.request.req(opts).then(result => {
+            debugLog(`Last update time: ${result.update_time}`);
             return new Date(result.update_time);
         });
     }
 
-    public get(tag: string[] = [], date?: Date, url?: string, meta: Boolean = false): Promise<any> {
+    public get(tag: string[] = [], date?: Date, url?: string, meta: Boolean = false): Promise<PinboardPostCollection> {
         if (tag.length > 3) {
             throw "Only three tags are supported for this request";
         }
         var opts = this.urlOpts.clone();
         opts.basePath.push('get');
         tag.forEach((t) => { opts.queryParams.push(new QueryParameter('tag', t)); });
-        if (date) { opts.queryParams.push(new QueryParameter('dt', Pinboard.dateFormatter(date))); }
+        if (date) { opts.queryParams.push(new QueryParameter('dt', PinboardData.dateFormatter(date))); }
         if (url) { opts.queryParams.push(new QueryParameter('url', url)); }
         opts.queryParams.push(new QueryParameter('meta', meta ? "yes" : "no"));
 
         return this.request.req(opts).then(result => {
             let collection = new PinboardPostCollection(new Date(result.date), result.user);
             result.posts.forEach(postObj => collection.posts.push(PinboardPost.fromObj(postObj)));
+            debugLog(`Got a PostCollection with ${collection.posts.length} posts`);
             return collection;
         });
     }
@@ -109,6 +132,7 @@ export class PinboardTagsEndpoint {
             for (var tagName in tagObj) {
                 tags.push(new PinboardTag(tagName, tagObj[tagName]));
             }
+            debugLog(`Got ${tags.length} tags`);
             return tags;
         });
     }
@@ -128,9 +152,5 @@ export class Pinboard {
 
         this.posts = new PinboardPostsEndpoint(this.baseUrlOpts);
         this.tags = new PinboardTagsEndpoint(this.baseUrlOpts);
-    }
-
-    public static dateFormatter(date: Date): string {
-        return date.toISOString();
     }
 }
