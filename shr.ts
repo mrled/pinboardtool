@@ -7,7 +7,12 @@ import debug = require('debug');
 let debugLog = debug('shr');
 
 export class QueryParameter {
-    constructor(public name: string, public value: string) {}
+    public value: string;
+    public name: string;
+    constructor(name: string, value: string) {
+        this.name = encodeURIComponent(name);
+        this.value = encodeURIComponent(value);
+    }
 }
 
 export interface RequestOptionsParameters {
