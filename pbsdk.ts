@@ -1,7 +1,45 @@
 import { RequestOptions, QueryParameter, SimpleHttpsRequest, HttpsRequest } from "./shr";
 
 export class PinboardTag {
-    constructor(public name: string, public count: number) {}
+    public count: number;
+    constructor(public name: string, count?: number) {
+        if (count) { this.count = count; }
+    }
+}
+
+export class PinboardPost {
+    constructor(
+        public href: string,
+        public description: string,
+        public extended: string,
+        public meta: string,
+        public hash: string,
+        public time: Date,
+        public shared: boolean,
+        public toread: boolean,
+        public tags: PinboardTag[] = []
+    ) {}
+    static fromObj(opts: any) {
+        let post = new PinboardPost(
+            opts.href,
+            opts.description,
+            opts.extended,
+            opts.meta,
+            opts.hash,
+            new Date(opts.time),
+            opts.shared === 'yes' ? true : false,
+            opts.toread === 'yes' ? true : false)
+        opts.tags.split(' ').forEach(tagName => post.tags.push(new PinboardTag(tagName)));
+        return post;
+    }
+}
+
+export class PinboardPostCollection {
+    constructor(
+        public date: Date,
+        public user: string,
+        public posts: PinboardPost[] = []
+    ) {}
 }
 
 export class PinboardPostsEndpoint {
@@ -21,13 +59,21 @@ export class PinboardPostsEndpoint {
     }
 
     public get(tag: string[] = [], date?: Date, url?: string, meta: Boolean = false): Promise<any> {
+        if (tag.length > 3) {
+            throw "Only three tags are supported for this request";
+        }
         var opts = this.urlOpts.clone();
         opts.basePath.push('get');
         tag.forEach((t) => { opts.queryParams.push(new QueryParameter('tag', t)); });
         if (date) { opts.queryParams.push(new QueryParameter('dt', Pinboard.dateFormatter(date))); }
         if (url) { opts.queryParams.push(new QueryParameter('url', url)); }
         opts.queryParams.push(new QueryParameter('meta', meta ? "yes" : "no"));
-        return this.request.req(opts);
+
+        return this.request.req(opts).then(result => {
+            let collection = new PinboardPostCollection(new Date(result.date), result.user);
+            result.posts.forEach(postObj => collection.posts.push(PinboardPost.fromObj(postObj)));
+            return collection;
+        });
     }
 
     public recent(tag: string[] = [], count?: number): Promise<any> {
