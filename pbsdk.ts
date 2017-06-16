@@ -50,6 +50,23 @@ export class PinboardPost {
         opts.tags.split(' ').forEach(tagName => post.tags.push(new PinboardTag(tagName)));
         return post;
     }
+
+    uiString(): string {
+        let tagNames: string[] = [];
+        this.tags.forEach(t => tagNames.push(t.name));
+
+        let ret = "";
+        ret += `----------------\n`
+        ret += this.description ? `${this.description}\n` : "UNTITLED BOOKMARK\n";
+        ret += `<${this.href}>\n`;
+        ret += this.extended ? `${this.extended}\n` : "";
+        ret += `bookmarked: ${PinboardData.dateFormatter(this.time)}\n`;
+        ret += `public: ${this.shared}, toread: ${this.toread}\n`;
+        ret += `tags: ${tagNames.join(' ')}\n`;
+        ret += `----------------\n`
+
+        return ret;
+    }
 }
 
 export class PinboardPostCollection {
@@ -58,6 +75,14 @@ export class PinboardPostCollection {
         public user: string,
         public posts: PinboardPost[] = []
     ) {}
+
+    uiString(): string {
+        let ret = `PinboardPostCollection for user ${this.user} on ${PinboardData.dateFormatter(this.date)}\n`;
+        ret += `================\n\n`
+        this.posts.forEach(p => ret += `${p.uiString()}\n`);
+        ret += `================\n`
+        return ret;
+    }
 }
 
 export class PinboardPostsEndpoint {

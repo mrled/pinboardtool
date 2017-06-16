@@ -133,8 +133,8 @@ class Startup {
                 switch (parsed.verb) {
                     case 'get': {
                         pinboard.posts.get(parsed.tags, parsed.date, parsed.url, false).then(collection => {
-                            console.log(collection.posts);
-                        });
+                            console.log("\n" + collection.uiString());
+                        }, handleApiFailure);
                         break;
                     }
                     case 'update': {
