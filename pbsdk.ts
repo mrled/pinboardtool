@@ -8,7 +8,7 @@ export class PinboardPostsEndpoint {
     public noun = "posts";
     public urlOpts: RequestOptions;
     constructor(baseUrlOpts: RequestOptions, private request: SimpleHttpsRequest = new HttpsRequest()) {
-        this.urlOpts = baseUrlOpts;
+        this.urlOpts = baseUrlOpts.clone();
         this.urlOpts.basePath.push(this.noun);
     }
 
@@ -51,7 +51,7 @@ export class PinboardTagsEndpoint {
     public noun = "tags";
     public urlOpts: RequestOptions;
     constructor(baseUrlOpts: RequestOptions, private request: SimpleHttpsRequest = new HttpsRequest()) {
-        this.urlOpts = baseUrlOpts;
+        this.urlOpts = baseUrlOpts.clone();
         this.urlOpts.basePath.push(this.noun);
     }
 
@@ -80,8 +80,8 @@ export class Pinboard {
         );
         this.baseUrlOpts.parseJson = true;
 
-        this.posts = new PinboardPostsEndpoint(this.baseUrlOpts.clone());
-        this.tags = new PinboardTagsEndpoint(this.baseUrlOpts.clone());
+        this.posts = new PinboardPostsEndpoint(this.baseUrlOpts);
+        this.tags = new PinboardTagsEndpoint(this.baseUrlOpts);
     }
 
     public static dateFormatter(date: Date): string {
