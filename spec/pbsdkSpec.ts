@@ -1,6 +1,6 @@
 /// <reference path="../node_modules/@types/jasmine/index.d.ts" />
 
-import { Pinboard, PinboardTag, PinboardPostsEndpoint, PinboardTagsEndpoint } from "../pbsdk";
+import { Pinboard, PinboardTag, PinboardPostsEndpoint, PinboardTagsEndpoint, PinboardNotesEndpoint } from "../pbsdk";
 import { RequestOptions, QueryParameter } from "../shr";
 import { ShrMockerIoPair, ShrMocker } from "../shr.mocks";
 
@@ -98,4 +98,74 @@ describe("Pinboard", () => {
 
     });
 
+
+    describe("PinboardNotesEndpoint", ()=>{
+        describe(".list()", ()=>{
+            let expectedResponse = {
+                count: 3,
+                notes: [
+                    { id: '1269390a115d57a6a1df',
+                        hash: '2ae1cd3b209b25218bfe',
+                        title: 'Luzarius Live Dragon Age Comment (June 13th update)',
+                        length: '15277',
+                        created_at: '2015-06-18 20:32:46',
+                        updated_at: '2015-06-18 20:32:46' },
+                    { id: '0f36e438a70995557062',
+                        hash: '4eced4628d8f0c1510a4',
+                        title: 'Potato Salad',
+                        length: '78',
+                        created_at: '2015-07-06 16:16:05',
+                        updated_at: '2015-07-06 16:16:05' },
+                    { id: '45ac2da2b5a9f3ada7ea',
+                        hash: '5a91d945a7f0d5579410',
+                        title: 'audiotodo',
+                        length: '215',
+                        created_at: '2016-08-04 14:36:49',
+                        updated_at: '2016-08-04 14:36:49' }
+            ]};
+
+            let mocker = new ShrMocker([
+                new ShrMockerIoPair(
+                    {host: host, basePath: ['notes', 'list'], queryParams: queryParams},
+                    expectedResponse
+                )
+            ]);
+            let pinboardNotes = new PinboardNotesEndpoint(baseUrlOpts, mocker);
+
+            it("Returns expected data", (done) => {
+                pinboardNotes.list().then(result => {
+                    expect(result).toEqual(expectedResponse);
+                    done();
+                });
+            });
+
+        });
+
+        describe(".get(noteid)", ()=>{
+            let expectedResponse = {
+                id: '0235ab0c3468486ad6ef',
+                title: 'Pleasurable Buzz',
+                created_at: '2015-05-21 18:44:46',
+                updated_at: '2015-05-21 18:44:46',
+                length: 379,
+                text: 'This is like, surrealist scifi stuff, I guess? \r\n\r\nIt comes from a William Gibson quote:\r\n\r\n"Coming up with a word like neuromancer is something that would earn you a really fine vacation if you worked in an ad agency. It was a kind of booby-trapped portmanteau that contained considerable potential for cognitive dissonance, that pleasurable buzz of feeling slightly unsettled."',
+                hash: '733bd9987b55e54c8419'
+            };
+
+            let mocker = new ShrMocker([
+                new ShrMockerIoPair(
+                    {host: host, basePath: ['notes', expectedResponse.id], queryParams: queryParams},
+                    expectedResponse
+                )
+            ]);
+            let pinboardNotes = new PinboardNotesEndpoint(baseUrlOpts, mocker);
+
+            it("Returns expected data", (done) => {
+                pinboardNotes.get(expectedResponse.id).then(result => {
+                    expect(result).toEqual(expectedResponse);
+                    done();
+                });
+            });
+        });
+    });
 });

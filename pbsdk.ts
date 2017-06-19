@@ -92,6 +92,18 @@ export class PinboardPostCollection {
     }
 }
 
+export class PinboardNote {
+    constructor(
+        public id: string,
+        public title: string,
+        public created_at: Date,
+        public updated_at: Date,
+        public length: number,
+        public text: string,
+        public hash: string
+    ) {}
+}
+
 export class PinboardPostsEndpoint {
     public noun = "posts";
     public urlOpts: RequestOptions;
@@ -178,12 +190,43 @@ export class PinboardTagsEndpoint {
     }
 }
 
+export class PinboardNotesEndpoint {
+    public noun = "notes";
+    public urlOpts: RequestOptions;
+    constructor(
+        baseUrlOpts: RequestOptions,
+        private request: SimpleHttpsRequest = new HttpsRequest()
+    ) {
+        this.urlOpts = baseUrlOpts.clone();
+        this.urlOpts.basePath.push(this.noun);
+    }
+
+    public list(): any {
+        var opts = this.urlOpts.clone();
+        opts.basePath.push('list');
+        return this.request.req(opts);
+    }
+
+    public get(noteid: string) {
+        if (noteid.length < 1) {
+            throw "An empty string is an invalid noteid."
+        }
+        var opts = this.urlOpts.clone();
+        opts.basePath.push(noteid);
+        return this.request.req(opts);
+    }
+}
+
 export class Pinboard {
     public posts: PinboardPostsEndpoint;
     public tags: PinboardTagsEndpoint;
-    public baseUrlOpts = new RequestOptions({host: 'api.pinboard.in', basePath: ['v1']});
+    public notes: PinboardNotesEndpoint;
+    public user: string;
 
-    constructor(apitoken: string) {
+    constructor(
+        apitoken: string,
+        public baseUrlOpts = new RequestOptions({host: 'api.pinboard.in', basePath: ['v1']})
+    ) {
         this.baseUrlOpts.queryParams.push(
             new QueryParameter('auth_token', apitoken),
             new QueryParameter('format', 'json')
@@ -192,5 +235,6 @@ export class Pinboard {
 
         this.posts = new PinboardPostsEndpoint(this.baseUrlOpts);
         this.tags = new PinboardTagsEndpoint(this.baseUrlOpts);
+        this.notes = new PinboardNotesEndpoint(this.baseUrlOpts);
     }
 }

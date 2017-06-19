@@ -98,6 +98,14 @@ class Startup {
             help: 'Number of results to return from 1-100.'
         });
 
+        let notesParser = subParsers.addParser('notes');
+        let notesSubparsers = notesParser.addSubparsers({title: 'notes', dest: 'verb'});
+
+        let notesListParser = notesSubparsers.addParser('list', {help: 'List all notes.'});
+
+        let notesGetParser = notesSubparsers.addParser('get', {help: 'Get a single note.'});
+        notesGetParser.addArgument(['noteid'], {help: 'The ID of the note.'});
+
         let parsed = parser.parseArgs();
         debugLog(parsed);
 
@@ -165,6 +173,20 @@ class Startup {
                     }
                     case 'recent': {
                         pinboard.posts.recent(parsed.tags, parsed.count).then(collection => console.log(collection.uiString()));
+                        break;
+                    }
+                    default: throw `Unknown verb ${parsed.verb}`;
+                }
+                break;
+            }
+            case 'notes': {
+                switch (parsed.verb) {
+                    case 'get': {
+                        pinboard.notes.get(parsed.noteid).then(result => console.log(result));
+                        break;
+                    }
+                    case 'list': {
+                        pinboard.notes.list().then(result => console.log(result));
                         break;
                     }
                     default: throw `Unknown verb ${parsed.verb}`;
