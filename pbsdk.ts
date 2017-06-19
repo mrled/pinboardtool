@@ -51,7 +51,7 @@ export class PinboardPost {
         return post;
     }
 
-    uiString(): string {
+    public uiString(): string {
         let tagNames: string[] = [];
         this.tags.forEach(t => tagNames.push(t.name));
 
@@ -76,12 +76,19 @@ export class PinboardPostCollection {
         public posts: PinboardPost[] = []
     ) {}
 
-    uiString(): string {
+    public uiString(): string {
         let ret = `PinboardPostCollection for user ${this.user} on ${PinboardData.dateFormatter(this.date)}\n`;
         ret += `================\n\n`
         this.posts.forEach(p => ret += `${p.uiString()}\n`);
         ret += `================\n`
         return ret;
+    }
+
+    public static fromHttpResponse(response: any): PinboardPostCollection {
+        let collection = new PinboardPostCollection(new Date(response.date), response.user);
+        response.posts.forEach(postObj => collection.posts.push(PinboardPost.fromObj(postObj)));
+        debugLog(`Got a PostCollection with ${collection.posts.length} posts`);
+        return collection;
     }
 }
 
@@ -116,15 +123,11 @@ export class PinboardPostsEndpoint {
         if (url) { opts.queryParams.push(new QueryParameter('url', url)); }
         opts.queryParams.push(new QueryParameter('meta', meta ? "yes" : "no"));
 
-        return this.request.req(opts).then(result => {
-            let collection = new PinboardPostCollection(new Date(result.date), result.user);
-            result.posts.forEach(postObj => collection.posts.push(PinboardPost.fromObj(postObj)));
-            debugLog(`Got a PostCollection with ${collection.posts.length} posts`);
-            return collection;
-        });
+        return this.request.req(opts)
+            .then(result => PinboardPostCollection.fromHttpResponse(result));
     }
 
-    public recent(tag: string[] = [], count?: number): Promise<any> {
+    public recent(tag: string[] = [], count?: number): Promise<PinboardPostCollection> {
         if (tag.length > 3) {
             throw "Only three tags are supported for this request";
         }
@@ -137,7 +140,8 @@ export class PinboardPostsEndpoint {
         if (count) {
             opts.queryParams.push(new QueryParameter('count', String(count)));
         }
-        return this.request.req(opts);
+        return this.request.req(opts)
+            .then(result => PinboardPostCollection.fromHttpResponse(result));
     }
 }
 

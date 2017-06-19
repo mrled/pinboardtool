@@ -86,6 +86,18 @@ class Startup {
             help: 'Show the most recent time a bookmark was added, updated, or deleted. (Intended to be used before calling /posts/all to see if data has changed since the last fetch.)'
         });
 
+        let postsRecentParser = postsSubparsers.addParser('recent', {
+            help: 'Show the most recent posts'
+        });
+        postsRecentParser.addArgument(['--tags', '-t'], {
+            nargs: '+', defaultValue: [],
+            help: 'Filter by these tags (three max).'
+        });
+        postsRecentParser.addArgument(['--count', '-c'], {
+            type: 'int', defaultValue: 15,
+            help: 'Number of results to return from 1-100.'
+        });
+
         let parsed = parser.parseArgs();
         debugLog(parsed);
 
@@ -149,6 +161,10 @@ class Startup {
                     }
                     case 'update': {
                         pinboard.posts.update().then(result => console.log(`Last update time: ${result.toString()}`), handleApiFailure);
+                        break;
+                    }
+                    case 'recent': {
+                        pinboard.posts.recent(parsed.tags, parsed.count).then(collection => console.log(collection.uiString()));
                         break;
                     }
                     default: throw `Unknown verb ${parsed.verb}`;
