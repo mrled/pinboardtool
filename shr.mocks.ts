@@ -29,7 +29,9 @@ export class ShrMocker implements SimpleHttpsRequest {
         if (typeof match !== 'undefined') {
             return match;
         } else {
-            throw `Passed options (url: ${options.fullUrl}) do not match any known input/output pair`;
+            let msg = `${options.method} ${options.fullUrl} (input request) do not match any known input/output pair:\n`;
+            this.ioPairs.forEach(pair => msg += `${pair.opts.method} ${pair.opts.fullUrl}\n`);
+            throw msg;
         }
     }
 }
