@@ -1,4 +1,6 @@
 {
+  "name": "pbt",
+  "version": "0.0.1",
   "devDependencies": {
     "@types/argparse": "^1.0.30",
     "@types/jasmine": "^2.5.52",
