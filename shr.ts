@@ -29,6 +29,11 @@ export interface RequestOptionsParameters {
     postData?: string
 }
 
+type RequestOptionsCloneParameters = {
+    subPath?: string[],
+    appendQueryParams?: QueryParameter[]
+}
+
 /* A class that can be passed to httpRequest()
  * Note that it is also passable directly to node's https.request()
  */
@@ -73,7 +78,7 @@ export class RequestOptions {
         return `${this.protocol}//${this.host}:${this.port}${this.path}`;
     }
 
-    clone(): RequestOptions {
+    clone(params?: RequestOptionsCloneParameters): RequestOptions {
         var ro = new RequestOptions({
             host: this.host,
             basePath: [],
@@ -84,8 +89,14 @@ export class RequestOptions {
             method: this.method,
             postData: this.postData
         })
-        this.basePath.forEach((bp) => ro.basePath.push(bp));
-        this.queryParams.forEach((qp) => ro.queryParams.push(qp));
+        this.basePath.forEach(bp => ro.basePath.push(bp));
+        this.queryParams.forEach(qp => ro.queryParams.push(qp));
+        if (params.subPath) {
+            params.subPath.forEach(sp => ro.basePath.push(sp));
+        }
+        if (params.appendQueryParams) {
+            params.appendQueryParams.forEach(aqp => ro.queryParams.push(aqp));
+        }
         return ro;
     }
 
