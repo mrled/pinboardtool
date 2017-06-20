@@ -1,8 +1,12 @@
 /// <reference path="../node_modules/@types/jasmine/index.d.ts" />
 
-import { Pinboard, PinboardTag, PinboardPostsEndpoint, PinboardTagsEndpoint, PinboardNotesEndpoint } from "../pbsdk";
+import { Pinboard, PinboardTag, PinboardNote, PinboardPost, PinboardPostsEndpoint, PinboardTagsEndpoint, PinboardNotesEndpoint } from "../pbsdk";
 import { RequestOptions, QueryParameter } from "../shr";
 import { ShrMockerIoPair, ShrMocker } from "../shr.mocks";
+
+/* Notes on testing
+ * We use JavaScript objects as server responses to emulate automatic JSON decoding in node's https.request() function
+ */
 
 describe("Pinboard", () => {
     let authToken = "EXAMPLEAUTHTOKEN";
@@ -16,19 +20,16 @@ describe("Pinboard", () => {
         describe(".update()", () => {
 
             var updateTime = "2017-06-12T15:50:00Z";
-            var expectedResponse = { update_time: updateTime};
+            var serverResponse = { update_time: updateTime};
             var mocker = new ShrMocker([
-                new ShrMockerIoPair(
-                    {host: host, basePath: ['posts', 'update'], queryParams: queryParams},
-                    expectedResponse
-                )
+                new ShrMockerIoPair({host: host, basePath: ['posts', 'update'], queryParams: queryParams}, serverResponse)
             ]);
             var pinboardPosts = new PinboardPostsEndpoint(baseUrlOpts, mocker);
 
             it("Returns expected data", (done) => {
                 pinboardPosts.update().then(result => {
                     expect(result).toEqual(new Date (updateTime));
-                    done();
+                    done();)
                 }, error => {
                     console.log(`ERROR: ${error}`);
                     for (var key in error) {
@@ -36,14 +37,6 @@ describe("Pinboard", () => {
                     }
                 });
             })
-            /*
-            ,it("Fails with this test", (done) => {
-                pinboardPosts.update().then(result => {
-                    expect(result).toBe(new Date());
-                    done();
-                })
-            })
-            */
         });
 
     })
@@ -101,7 +94,7 @@ describe("Pinboard", () => {
 
     describe("PinboardNotesEndpoint", ()=>{
         describe(".list()", ()=>{
-            let expectedResponse = {
+            let serverResponse = {
                 count: 3,
                 notes: [
                     { id: '1269390a115d57a6a1df',
@@ -121,20 +114,37 @@ describe("Pinboard", () => {
                         title: 'audiotodo',
                         length: '215',
                         created_at: '2016-08-04 14:36:49',
-                        updated_at: '2016-08-04 14:36:49' }
+                        updated_at: '2016-08-05 12:15:13' }
             ]};
+            let expectedValue = [
+                new PinboardNote(
+                    '1269390a115d57a6a1df',
+                    'Luzarius Live Dragon Age Comment (June 13th update)',
+                    new Date('2015-06-18 20:32:46'),
+                    new Date('2015-06-18 20:32:46'),
+                    '2ae1cd3b209b25218bfe'),
+                new PinboardNote(
+                    '0f36e438a70995557062',
+                    'Potato Salad',
+                    new Date('2015-07-06 16:16:05'),
+                    new Date('2015-07-06 16:16:05'),
+                    '4eced4628d8f0c1510a4'),
+                new PinboardNote(
+                    '45ac2da2b5a9f3ada7ea',
+                    'audiotodo',
+                    new Date('2016-08-04 14:36:49'),
+                    new Date('2016-08-05 12:15:13'),
+                    '5a91d945a7f0d5579410'),
+            ];
 
             let mocker = new ShrMocker([
-                new ShrMockerIoPair(
-                    {host: host, basePath: ['notes', 'list'], queryParams: queryParams},
-                    expectedResponse
-                )
+                new ShrMockerIoPair({host: host, basePath: ['notes', 'list'], queryParams: queryParams}, serverResponse)
             ]);
             let pinboardNotes = new PinboardNotesEndpoint(baseUrlOpts, mocker);
 
             it("Returns expected data", (done) => {
                 pinboardNotes.list().then(result => {
-                    expect(result).toEqual(expectedResponse);
+                    expect(result).toEqual(expectedValue);
                     done();
                 });
             });

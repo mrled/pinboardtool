@@ -96,12 +96,67 @@ export class PinboardNote {
     constructor(
         public id: string,
         public title: string,
-        public created_at: Date,
-        public updated_at: Date,
-        public length: number,
-        public text: string,
-        public hash: string
+        public createDate: Date,
+        public updateDate: Date,
+        public hash: string,
+        public text?: string
     ) {}
+    public static fromHttpResponse(
+        response: any,
+    ): PinboardNote {
+        let note = new PinboardNote(
+            response.id,
+            response.title,
+            new Date(response.created_at),
+            new Date(response.updated_at),
+            response.text ? response.text : "",
+            response.hash,
+        );
+        return note;
+    }
+}
+
+export class PinboardNotePost {
+    constructor(
+        // PinboardNote properties
+        public id: string,
+        public title: string,
+        public createDate: Date,
+        public updateDate: Date,
+        public text: string,
+        public hash: string,
+
+        // PinboardPost properties, elided if functionally equivalent to previous properties
+        public href: string,
+        // public description: string,
+        // public extended: string,
+        public meta: string,
+        public postHash: string,  // TODO: is this different from the PinboardNoteMetadata hash?
+        // public time: Date,
+        public shared: boolean,
+        public toread: boolean,
+        public tags: PinboardTag[] = []
+    ) {}
+
+    public static fromPrimitives(
+        note: PinboardNote,
+        post: PinboardPost
+    ): PinboardNotePost {
+        return new PinboardNotePost(
+            note.id,
+            note.title,
+            note.createDate,
+            note.updateDate,
+            note.text,
+            note.hash,
+            post.href,
+            post.meta,
+            post.hash,
+            post.shared,
+            post.toread,
+            post.tags
+        );
+    }
 }
 
 export class PinboardPostsEndpoint {
@@ -111,13 +166,11 @@ export class PinboardPostsEndpoint {
         baseUrlOpts: RequestOptions,
         private request: SimpleHttpsRequest = new HttpsRequest()
     ) {
-        this.urlOpts = baseUrlOpts.clone();
-        this.urlOpts.basePath.push(this.noun);
+        this.urlOpts = baseUrlOpts.clone({subPath: [this.noun]});
     }
 
     public update(): Promise<Date> {
-        var opts = this.urlOpts.clone();
-        opts.basePath.push('update');
+        var opts = this.urlOpts.clone({subPath: ['update']});
         return this.request.req(opts).then(result => {
             debugLog(`Last update time: ${result.update_time}`);
             return new Date(result.update_time);
@@ -128,8 +181,7 @@ export class PinboardPostsEndpoint {
         if (tag.length > 3) {
             throw "Only three tags are supported for this request";
         }
-        var opts = this.urlOpts.clone();
-        opts.basePath.push('get');
+        var opts = this.urlOpts.clone({subPath: ['get']});
         tag.forEach((t) => { opts.queryParams.push(new QueryParameter('tag', t)); });
         if (date) { opts.queryParams.push(new QueryParameter('dt', PinboardData.dateFormatter(date))); }
         if (url) { opts.queryParams.push(new QueryParameter('url', url)); }
@@ -146,8 +198,7 @@ export class PinboardPostsEndpoint {
         if (count > 100 || count < 0) {
             throw `Invalid value for 'count': '${count}'. Must be between 0-100.`
         }
-        var opts = this.urlOpts.clone();
-        opts.basePath.push('recent');
+        var opts = this.urlOpts.clone({subPath: ['recent']});
         tag.forEach((t) => { opts.queryParams.push(new QueryParameter('tag', t)); });
         if (count) {
             opts.queryParams.push(new QueryParameter('count', String(count)));
@@ -161,13 +212,11 @@ export class PinboardTagsEndpoint {
     public noun = "tags";
     public urlOpts: RequestOptions;
     constructor(baseUrlOpts: RequestOptions, private request: SimpleHttpsRequest = new HttpsRequest()) {
-        this.urlOpts = baseUrlOpts.clone();
-        this.urlOpts.basePath.push(this.noun);
+        this.urlOpts = baseUrlOpts.clone({subPath: [this.noun]});
     }
 
     public get(): Promise<PinboardTag[]> {
-        var opts = this.urlOpts.clone();
-        opts.basePath.push('get');
+        var opts = this.urlOpts.clone({subPath: ['get']});
         return this.request.req(opts).then(tagObj => {
             let tags: PinboardTag[] = [];
             for (var tagName in tagObj) {
@@ -179,8 +228,7 @@ export class PinboardTagsEndpoint {
     }
 
     public rename(oldName: string, newName: string): Promise<any> {
-        var opts = this.urlOpts.clone();
-        opts.basePath.push('rename');
+        var opts = this.urlOpts.clone({subPath: ['rename']});
         opts.queryParams.push(new QueryParameter('old', oldName));
         opts.queryParams.push(new QueryParameter('new', newName));
         return this.request.req(opts).then(result => {
@@ -197,35 +245,82 @@ export class PinboardNotesEndpoint {
         baseUrlOpts: RequestOptions,
         private request: SimpleHttpsRequest = new HttpsRequest()
     ) {
-        this.urlOpts = baseUrlOpts.clone();
-        this.urlOpts.basePath.push(this.noun);
+        this.urlOpts = baseUrlOpts.clone({subPath: [this.noun]});
     }
 
-    public list(): any {
-        var opts = this.urlOpts.clone();
-        opts.basePath.push('list');
-        return this.request.req(opts);
+    // This endpoint does not return note text! Only metadata. However, PinboardNotePostsVirtualEndpoint.list() will make a new API call to get the whole note.
+    public list(): Promise<PinboardNote[]> {
+        let opts = this.urlOpts.clone({subPath: ['list']});
+        return this.request.req(opts).then(response => {
+            let notes: PinboardNote[];
+            response.notes.forEach(n => notes.push(PinboardNote.fromHttpResponse(n)));
+            return notes;
+        });
     }
 
-    public get(noteid: string) {
+    public get(noteid: string): Promise<PinboardNote> {
         if (noteid.length < 1) {
             throw "An empty string is an invalid noteid."
         }
-        var opts = this.urlOpts.clone();
-        opts.basePath.push(noteid);
-        return this.request.req(opts);
+        let opts = this.urlOpts.clone({subPath: [noteid]});
+        return this.request.req(opts).then(response => PinboardNote.fromHttpResponse(response));
+    }
+}
+
+/* Virtual endpoint for PinboardNotePost objects
+ * There is no single endpoint for this in the API - we have to make two API calls in order to get this information
+ * N.B.: Pinboard has separate concepts for "note" and a "post", but the concepts are conflated in the UI
+ * In the UI, it looks like you can create a new post with tags
+ * What actually happens: you create a new note that has properties like title, ID, and text,
+ * ... as well as a URL to https://notes.pinboard.in/u:USERNAME/NOTEID
+ * And then it automatically creates a "post" (bookmark) to that URL with the tags attached
+ * So retrieving the full text and metadata of a note, plus its tags, requires two HTTP requests:
+ * 1) to the /notes/get?id=NOTEID or /notes/list endpoint, to retrieve the note metadata
+ * 2) to the /posts/get?url=NOTEURL endpoint, to retrieve the post metadata like tags
+ */
+export class PinboardNotePostsVirtualEndpoint {
+    constructor(
+        private notesEndpoint: PinboardNotesEndpoint,
+        private postsEndpoint: PinboardPostsEndpoint,
+        private notesUrlOpts: RequestOptions
+    ) {}
+
+    private postFromNote(note: PinboardNote): Promise<PinboardNotePost> {
+        let noteUrl = this.notesUrlOpts.clone({subPath: [note.id]}).fullUrl;
+        return this.postsEndpoint.get(undefined, undefined, noteUrl).then(collection => {
+            if (collection.posts.length != 1) {
+                throw `Expected to find bookmark for URL ${noteUrl}, but found ${collection.posts.length} instead.`;
+            }
+            let notePost = PinboardNotePost.fromPrimitives(note, collection.posts[0]);
+            return notePost;
+        });
+    }
+
+    public list(): Promise<PinboardNotePost[]> {
+        return this.notesEndpoint.list().then(noteMetadataList => {
+            let notePosts: Promise<PinboardNotePost>[] = [];
+            // We do a .get(id) for each note, because this.notesEndpoint.list() returns note metadata without the .text property
+            noteMetadataList.forEach(noteMetadata => notePosts.push(this.get(noteMetadata.id)));
+            return Promise.all(notePosts);
+        });
+    }
+
+    public get(noteid: string): Promise<PinboardNotePost> {
+        return this.notesEndpoint.get(noteid).then(note => this.postFromNote(note));
     }
 }
 
 export class Pinboard {
     public posts: PinboardPostsEndpoint;
     public tags: PinboardTagsEndpoint;
+    public notePosts: PinboardNotePostsVirtualEndpoint;
     public notes: PinboardNotesEndpoint;
     public user: string;
 
     constructor(
         apitoken: string,
-        public baseUrlOpts = new RequestOptions({host: 'api.pinboard.in', basePath: ['v1']})
+        public baseUrlOpts = new RequestOptions({host: 'api.pinboard.in', basePath: ['v1']}),
+        public notesUrlOpts = new RequestOptions({host: 'notes.pinboard.in', basePath: []})
     ) {
         this.baseUrlOpts.queryParams.push(
             new QueryParameter('auth_token', apitoken),
@@ -233,8 +328,15 @@ export class Pinboard {
         );
         this.baseUrlOpts.parseJson = true;
 
+        let username = apitoken.split(':')[0];
+        if (! username) {
+            throw `Could not parse username from API token`;
+        }
+        this.notesUrlOpts.basePath.push(`u:${username}`)
+
         this.posts = new PinboardPostsEndpoint(this.baseUrlOpts);
         this.tags = new PinboardTagsEndpoint(this.baseUrlOpts);
         this.notes = new PinboardNotesEndpoint(this.baseUrlOpts);
+        this.notePosts = new PinboardNotePostsVirtualEndpoint(this.notes, this.posts, this.notesUrlOpts);
     }
 }
