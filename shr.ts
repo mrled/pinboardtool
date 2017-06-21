@@ -7,7 +7,7 @@ import https = require('https');
 import debug = require('debug');
 let debugLog = debug('shr');
 
-type QueryParameterParameters = { // lol
+export type QueryParameterOptions = {
     name: string,
     value: string,
     noEncodeName?: boolean,
@@ -16,7 +16,7 @@ type QueryParameterParameters = { // lol
 export class QueryParameter {
     public value: string;
     public name: string;
-    constructor(params: QueryParameterParameters) {
+    constructor(params: QueryParameterOptions) {
         this.name  = params.noEncodeName  ? params.name  : encodeURIComponent(params.name);
         this.value = params.noEncodeValue ? params.value : encodeURIComponent(params.value);
     }
