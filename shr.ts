@@ -1,20 +1,32 @@
 // Simple HTTPS Request library
 // Convenience functions for dealing with Node's HTTPS requests
 
+import http = require('http');
 import https = require('https');
 
 import debug = require('debug');
 let debugLog = debug('shr');
 
+type QueryParameterParameters = { // lol
+    name: string,
+    value: string,
+    noEncodeName?: boolean,
+    noEncodeValue?: boolean
+}
 export class QueryParameter {
     public value: string;
     public name: string;
-    constructor(name: string, value: string) {
-        this.name = encodeURIComponent(name);
-        this.value = encodeURIComponent(value);
+    constructor(params: QueryParameterParameters) {
+        this.name  = params.noEncodeName  ? params.name  : encodeURIComponent(params.name);
+        this.value = params.noEncodeValue ? params.value : encodeURIComponent(params.value);
     }
     public clone(): QueryParameter {
-        return new QueryParameter(this.name, this.value);
+        return new QueryParameter({
+            name: this.name,
+            value: this.value,
+            noEncodeName: true,
+            noEncodeValue: true
+        });
     }
 }
 
@@ -127,29 +139,43 @@ export class HttpsRequest implements SimpleHttpsRequest {
     public req(options: RequestOptions): Promise<any> {
         debugLog(`${options.method} ${options.fullUrl}`);
         return new Promise<any>((resolve, reject) => {
-            var rejecting = false;
-            var ro = options.nodeRequestOpts;
-            var req = https.request(ro, (res) => {
-                if (res.statusCode < 200 || res.statusCode >= 300) { rejecting = true; }
+            let rejecting = false;
+            let ro = options.nodeRequestOpts;
+            let body = [];
+            let req = https.request(ro)
 
-                var body = [];
-                res.on('data', (chunk) => body.push(chunk));
+            req.on('response', response => {
+                if (response.statusCode < 200 || response.statusCode >= 300) { rejecting = true; }
 
-                res.on('end', () => {
-                    var b = Buffer.concat(body).toString();
+                response.on('data', (chunk) => body.push(chunk));
+
+                response.on('end', () => {
+                    let entireBody = Buffer.concat(body).toString();
+                    let error: Error;
+                    let resolution: any;
+                    resolution = entireBody;
+
                     if (rejecting) {
-                        reject(new Error(`ERROR ${res.statusCode} when attempting to ${options.method} '${options.fullUrl}'\r\n${b}`));
-                    } else {
-                        if (options.parseJson) {
-                            resolve(JSON.parse(b));
-                        } else {
-                            resolve(b);
+                        error = new Error(`ERROR ${response.statusCode} when attempting to ${options.method} '${options.fullUrl}'\r\n${entireBody}`);
+                    }
+                    else if (options.parseJson) {
+                        try {
+                            resolution = JSON.parse(entireBody);
+                        } catch (exception) {
+                            error = new Error(`JSON Parse error: ${exception} when receiving code ${response.statusCode} after performing ${options.method} on '${options.fullUrl}' and attempting to parse body:\r\n${entireBody}`)
                         }
+                    }
+
+                    if (error) {
+                        reject(error);
+                    } else {
+                        resolve(resolution);
                     }
                 });
             });
 
             req.on('error', (err) => reject(err));
+
             if (options.postData) { req.write(options.postData); }
 
             req.end();

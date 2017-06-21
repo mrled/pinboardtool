@@ -118,44 +118,25 @@ export class PinboardNote {
 
 export class PinboardNotePost {
     constructor(
-        // PinboardNote properties
-        public id: string,
-        public title: string,
-        public createDate: Date,
-        public updateDate: Date,
-        public text: string,
-        public hash: string,
-
-        // PinboardPost properties, elided if functionally equivalent to previous properties
-        public href: string,
-        // public description: string,
-        // public extended: string,
-        public meta: string,
-        public postHash: string,  // TODO: is this different from the PinboardNoteMetadata hash?
-        // public time: Date,
-        public shared: boolean,
-        public toread: boolean,
-        public tags: PinboardTag[] = []
+        public note: PinboardNote,
+        public post: PinboardPost
     ) {}
 
-    public static fromPrimitives(
-        note: PinboardNote,
-        post: PinboardPost
-    ): PinboardNotePost {
-        return new PinboardNotePost(
-            note.id,
-            note.title,
-            note.createDate,
-            note.updateDate,
-            note.text,
-            note.hash,
-            post.href,
-            post.meta,
-            post.hash,
-            post.shared,
-            post.toread,
-            post.tags
-        );
+    public uiString(): string {
+        let tagNames: string[] = [];
+        this.post.tags.forEach(t => tagNames.push(t.name));
+
+        let ret = "";
+        ret += `----------------\n`
+        ret += `Note: ${this.note.title} (id ${this.note.id}\n`
+        ret += `${this.note.text}\n`
+        ret += `added: ${PinboardData.dateFormatter(this.note.createDate)} `;
+        ret += `updated: ${PinboardData.dateFormatter(this.note.updateDate)}\n`;
+        ret += `public: ${this.post.shared}`
+        ret += `tags: ${tagNames.join(' ')}\n`;
+        ret += `----------------\n`
+
+        return ret;
     }
 }
 
@@ -182,10 +163,10 @@ export class PinboardPostsEndpoint {
             throw "Only three tags are supported for this request";
         }
         var opts = this.urlOpts.clone({subPath: ['get']});
-        tag.forEach((t) => { opts.queryParams.push(new QueryParameter('tag', t)); });
-        if (date) { opts.queryParams.push(new QueryParameter('dt', PinboardData.dateFormatter(date))); }
-        if (url) { opts.queryParams.push(new QueryParameter('url', url)); }
-        opts.queryParams.push(new QueryParameter('meta', meta ? "yes" : "no"));
+        tag.forEach((t) => { opts.queryParams.push(new QueryParameter({name: 'tag', value: t})); });
+        if (date) { opts.queryParams.push(new QueryParameter({name: 'dt', value: PinboardData.dateFormatter(date)})); }
+        if (url) { opts.queryParams.push(new QueryParameter({name: 'url', value: url})); }
+        opts.queryParams.push(new QueryParameter({name: 'meta', value: meta ? "yes" : "no"}));
 
         return this.request.req(opts)
             .then(result => PinboardPostCollection.fromHttpResponse(result));
@@ -199,9 +180,9 @@ export class PinboardPostsEndpoint {
             throw `Invalid value for 'count': '${count}'. Must be between 0-100.`
         }
         var opts = this.urlOpts.clone({subPath: ['recent']});
-        tag.forEach((t) => { opts.queryParams.push(new QueryParameter('tag', t)); });
+        tag.forEach((t) => { opts.queryParams.push(new QueryParameter({name: 'tag', value: t})); });
         if (count) {
-            opts.queryParams.push(new QueryParameter('count', String(count)));
+            opts.queryParams.push(new QueryParameter({name: 'count', value: String(count)}));
         }
         return this.request.req(opts)
             .then(result => PinboardPostCollection.fromHttpResponse(result));
@@ -229,8 +210,8 @@ export class PinboardTagsEndpoint {
 
     public rename(oldName: string, newName: string): Promise<any> {
         var opts = this.urlOpts.clone({subPath: ['rename']});
-        opts.queryParams.push(new QueryParameter('old', oldName));
-        opts.queryParams.push(new QueryParameter('new', newName));
+        opts.queryParams.push(new QueryParameter({name: 'old', value: oldName}));
+        opts.queryParams.push(new QueryParameter({name: 'new', value: newName}));
         return this.request.req(opts).then(result => {
             debugLog(`Got result: ${result}`);
             return result;
@@ -252,7 +233,7 @@ export class PinboardNotesEndpoint {
     public list(): Promise<PinboardNote[]> {
         let opts = this.urlOpts.clone({subPath: ['list']});
         return this.request.req(opts).then(response => {
-            let notes: PinboardNote[];
+            let notes: PinboardNote[] = [];
             response.notes.forEach(n => notes.push(PinboardNote.fromHttpResponse(n)));
             return notes;
         });
@@ -291,7 +272,7 @@ export class PinboardNotePostsVirtualEndpoint {
             if (collection.posts.length != 1) {
                 throw `Expected to find bookmark for URL ${noteUrl}, but found ${collection.posts.length} instead.`;
             }
-            let notePost = PinboardNotePost.fromPrimitives(note, collection.posts[0]);
+            let notePost = new PinboardNotePost(note, collection.posts[0]);
             return notePost;
         });
     }
@@ -323,20 +304,22 @@ export class Pinboard {
         public notesUrlOpts = new RequestOptions({host: 'notes.pinboard.in', basePath: []})
     ) {
         this.baseUrlOpts.queryParams.push(
-            new QueryParameter('auth_token', apitoken),
-            new QueryParameter('format', 'json')
+            new QueryParameter({name: 'auth_token', value: apitoken, noEncodeValue: true}),
+            new QueryParameter({name: 'format', value: 'json'})
         );
         this.baseUrlOpts.parseJson = true;
 
-        let username = apitoken.split(':')[0];
-        if (! username) {
+        this.user = apitoken.split(':')[0];
+        if (! this.user) {
             throw `Could not parse username from API token`;
         }
-        this.notesUrlOpts.basePath.push(`u:${username}`)
+        this.notesUrlOpts.basePath.push(`u:${this.user}`)
 
         this.posts = new PinboardPostsEndpoint(this.baseUrlOpts);
         this.tags = new PinboardTagsEndpoint(this.baseUrlOpts);
         this.notes = new PinboardNotesEndpoint(this.baseUrlOpts);
         this.notePosts = new PinboardNotePostsVirtualEndpoint(this.notes, this.posts, this.notesUrlOpts);
+
+        debugLog(`Pinboard object for user ${this.user} set up`);
     }
 }

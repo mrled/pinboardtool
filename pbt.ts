@@ -182,11 +182,11 @@ class Startup {
             case 'notes': {
                 switch (parsed.verb) {
                     case 'get': {
-                        pinboard.notes.get(parsed.noteid).then(result => console.log(result));
+                        pinboard.notePosts.get(parsed.noteid).then(result => console.log(result.uiString()));
                         break;
                     }
                     case 'list': {
-                        pinboard.notes.list().then(result => console.log(result));
+                        pinboard.notePosts.list().then(results => results.forEach(result => console.log(result.uiString())));
                         break;
                     }
                     default: throw `Unknown verb ${parsed.verb}`;
