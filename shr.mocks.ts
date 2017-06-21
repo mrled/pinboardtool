@@ -17,7 +17,7 @@ export class ShrMockerIoPair {
 export class ShrMocker implements SimpleHttpsRequest {
     constructor(public ioPairs: ShrMockerIoPair[]) {};
 
-    req(options: RequestOptions): Promise<any> {
+    public req(options: RequestOptions): Promise<any> {
         debugLog(`${options.method} ${options.fullUrl}`);
         var match: Promise<any>;
         this.ioPairs.forEach((pair) => {

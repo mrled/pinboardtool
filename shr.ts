@@ -61,11 +61,11 @@ export class RequestOptions {
         this.postData    = typeof params.postData    !== 'undefined' ? params.postData    : '';
     }
 
-    get path(): string {
+    public get path(): string {
         return `/${this.basePath.join('/')}${this.urlParametersString}`;
     }
 
-    get urlParametersString(): string {
+    public get urlParametersString(): string {
         var uas = "";
         this.queryParams.forEach((parameter) => {
             if (uas.length === 0) { uas += '?'; } else { uas += '&'; }
@@ -74,11 +74,11 @@ export class RequestOptions {
         return uas;
     }
 
-    get fullUrl(): string {
+    public get fullUrl(): string {
         return `${this.protocol}//${this.host}:${this.port}${this.path}`;
     }
 
-    clone(params?: RequestOptionsCloneParameters): RequestOptions {
+    public clone(params?: RequestOptionsCloneParameters): RequestOptions {
         var ro = new RequestOptions({
             host: this.host,
             basePath: [],
@@ -90,25 +90,25 @@ export class RequestOptions {
             postData: this.postData
         })
         this.basePath.forEach(bp => ro.basePath.push(bp));
-        this.queryParams.forEach(qp => ro.queryParams.push(qp));
+        this.queryParams.forEach(qp => ro.queryParams.push(qp.clone()));
         if (params.subPath) {
             params.subPath.forEach(sp => ro.basePath.push(sp));
         }
         if (params.appendQueryParams) {
-            params.appendQueryParams.forEach(aqp => ro.queryParams.push(aqp));
+            params.appendQueryParams.forEach(aqp => ro.queryParams.push(aqp.clone()));
         }
         return ro;
     }
 
-    equals(opts: RequestOptions): boolean {
-        return this.path === opts.path &&
+    public equals(opts: RequestOptions): boolean {
+        return this.path   === opts.path &&
             this.parseJson === opts.parseJson &&
-            this.method === opts.method &&
-            this.postData === opts.postData;
+            this.method    === opts.method &&
+            this.postData  === opts.postData;
     }
 
     // Turns out, having path be a computed property in TypeScript doesn't work for https.request()
-    get nodeRequestOpts(): object {
+    public get nodeRequestOpts(): object {
         return {
             host: this.host,
             path: this.path,
@@ -124,7 +124,7 @@ export interface SimpleHttpsRequest {
 }
 
 export class HttpsRequest implements SimpleHttpsRequest {
-    req(options: RequestOptions): Promise<any> {
+    public req(options: RequestOptions): Promise<any> {
         debugLog(`${options.method} ${options.fullUrl}`);
         return new Promise<any>((resolve, reject) => {
             var rejecting = false;
