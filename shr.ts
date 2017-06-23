@@ -78,7 +78,7 @@ export class RequestOptions {
     }
 
     public get urlParametersString(): string {
-        var uas = "";
+        let uas = "";
         this.queryParams.forEach((parameter) => {
             if (uas.length === 0) { uas += '?'; } else { uas += '&'; }
             uas += `${parameter.name}=${parameter.value}`;
@@ -91,7 +91,7 @@ export class RequestOptions {
     }
 
     public clone(cloneParams?: RequestOptionsCloneParameters): RequestOptions {
-        var ro = new RequestOptions({
+        let ro = new RequestOptions({
             host: this.host,
             basePath: [],
             protocol: this.protocol,

@@ -179,7 +179,7 @@ export class PinboardPostsEndpoint {
         if (typeof count !== 'undefined' && (count > 100 || count < 0)) {
             throw `Invalid value for 'count': '${count}'. Must be between 0-100.`
         }
-        var opts = this.urlOpts.clone({subPath: ['recent']});
+        let opts = this.urlOpts.clone({subPath: ['recent']});
         tag.forEach((t) => { opts.queryParams.push(new RequestOptionsQuery({name: 'tag', value: t})); });
         if (count) {
             opts.queryParams.push(new RequestOptionsQuery({name: 'count', value: String(count)}));
@@ -197,10 +197,10 @@ export class PinboardTagsEndpoint {
     }
 
     public get(): Promise<PinboardTag[]> {
-        var opts = this.urlOpts.clone({subPath: ['get']});
+        let opts = this.urlOpts.clone({subPath: ['get']});
         return this.request.req(opts).then(tagObj => {
             let tags: PinboardTag[] = [];
-            for (var tagName in tagObj) {
+            for (let tagName in tagObj) {
                 tags.push(new PinboardTag(tagName, tagObj[tagName]));
             }
             debugLog(`Got ${tags.length} tags`);
@@ -209,7 +209,7 @@ export class PinboardTagsEndpoint {
     }
 
     public rename(oldName: string, newName: string): Promise<any> {
-        var opts = this.urlOpts.clone({subPath: ['rename']});
+        let opts = this.urlOpts.clone({subPath: ['rename']});
         opts.queryParams.push(new RequestOptionsQuery({name: 'old', value: oldName}));
         opts.queryParams.push(new RequestOptionsQuery({name: 'new', value: newName}));
         return this.request.req(opts).then(result => {
