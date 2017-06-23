@@ -7,21 +7,21 @@ import https = require('https');
 import debug = require('debug');
 let debugLog = debug('shr');
 
-export type QueryParameterOptions = {
+export type RequestOptionsQueryParameters = {
     name: string,
     value: string,
     noEncodeName?: boolean,
     noEncodeValue?: boolean
 }
-export class QueryParameter {
+export class RequestOptionsQuery {
     public value: string;
     public name: string;
-    constructor(params: QueryParameterOptions) {
+    constructor(params: RequestOptionsQueryParameters) {
         this.name  = params.noEncodeName  ? params.name  : encodeURIComponent(params.name);
         this.value = params.noEncodeValue ? params.value : encodeURIComponent(params.value);
     }
-    public clone(): QueryParameter {
-        return new QueryParameter({
+    public clone(): RequestOptionsQuery {
+        return new RequestOptionsQuery({
             name: this.name,
             value: this.value,
             noEncodeName: true,
@@ -30,10 +30,10 @@ export class QueryParameter {
     }
 }
 
-export interface RequestOptionsParameters {
+export type RequestOptionsParameters = {
     host: string,
     basePath: string[],
-    queryParams?: QueryParameter[],
+    queryParams?: RequestOptionsQuery[],
     protocol?: string,
     port?: number,
     parseJson?: boolean,
@@ -43,7 +43,7 @@ export interface RequestOptionsParameters {
 
 type RequestOptionsCloneParameters = {
     subPath?: string[],
-    appendQueryParams?: QueryParameter[]
+    appendQueryParams?: RequestOptionsQuery[]
 }
 
 /* A class that can be passed to httpRequest()
@@ -55,7 +55,7 @@ export class RequestOptions {
     public basePath: string[];
     public protocol: string;
     public port: number;
-    public queryParams: QueryParameter[];
+    public queryParams: RequestOptionsQuery[];
 
     // Remaining properties are not included in the .path computed property
     public parseJson: boolean;

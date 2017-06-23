@@ -1,7 +1,7 @@
 /// <reference path="../node_modules/@types/jasmine/index.d.ts" />
 
 import { Pinboard, PinboardTag, PinboardNote, PinboardPost, PinboardPostsEndpoint, PinboardTagsEndpoint, PinboardNotesEndpoint } from "../pbsdk";
-import { RequestOptions, QueryParameter } from "../shr";
+import { RequestOptions, RequestOptionsQuery } from "../shr";
 import { ShrMockerIoPair, ShrMocker } from "../shr.mocks";
 
 /* Notes on testing
@@ -13,8 +13,8 @@ describe("Pinboard", () => {
     let host = "example.com";
     let basePath = [];
     let queryParams = [
-        new QueryParameter({name: 'auth_token', value: authToken, noEncodeValue: true}),
-        new QueryParameter({name: 'format', value: 'json'})];
+        new RequestOptionsQuery({name: 'auth_token', value: authToken, noEncodeValue: true}),
+        new RequestOptionsQuery({name: 'format', value: 'json'})];
     let baseUrlOpts = new RequestOptions({host: host, basePath: [], queryParams: queryParams});
 
     describe("PinboardPostsEndpoint", ()=>{
@@ -69,15 +69,15 @@ describe("Pinboard", () => {
 
         describe(".rename()", () =>{
             let expectedResponse = { result: 'done' };
-            let renameQp: QueryParameter[] = [];
-            queryParams.forEach(qp => renameQp.push(qp.clone()));
+            let renameQuery: RequestOptionsQuery[] = [];
+            queryParams.forEach(qp => renameQuery.push(qp.clone()));
             let oldName = 'exampleOldTagName',
                 newName = 'exampleNewTagname';
-            renameQp.push(new QueryParameter({name: 'old', value: oldName}));
-            renameQp.push(new QueryParameter({name: 'new', value: newName}));
+            renameQuery.push(new RequestOptionsQuery({name: 'old', value: oldName}));
+            renameQuery.push(new RequestOptionsQuery({name: 'new', value: newName}));
             let mocker = new ShrMocker([
                 new ShrMockerIoPair(
-                    {host: host, basePath: ['tags', 'rename'], queryParams: renameQp},
+                    {host: host, basePath: ['tags', 'rename'], queryParams: renameQuery},
                     expectedResponse
                 )
             ]);

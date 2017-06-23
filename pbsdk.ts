@@ -1,7 +1,7 @@
 import debug = require('debug');
 let debugLog = debug('pbsdk');
 
-import { RequestOptions, QueryParameter, SimpleHttpsRequest, HttpsRequest } from "./shr";
+import { RequestOptions, RequestOptionsQuery, SimpleHttpsRequest, HttpsRequest } from "./shr";
 
 export class PinboardData {
     public static boolean(input: string | number): boolean {
@@ -163,10 +163,10 @@ export class PinboardPostsEndpoint {
             throw "Only three tags are supported for this request";
         }
         var opts = this.urlOpts.clone({subPath: ['get']});
-        tag.forEach((t) => { opts.queryParams.push(new QueryParameter({name: 'tag', value: t})); });
-        if (date) { opts.queryParams.push(new QueryParameter({name: 'dt', value: PinboardData.dateFormatter(date)})); }
-        if (url) { opts.queryParams.push(new QueryParameter({name: 'url', value: url})); }
-        opts.queryParams.push(new QueryParameter({name: 'meta', value: meta ? "yes" : "no"}));
+        tag.forEach((t) => { opts.queryParams.push(new RequestOptionsQuery({name: 'tag', value: t})); });
+        if (date) { opts.queryParams.push(new RequestOptionsQuery({name: 'dt', value: PinboardData.dateFormatter(date)})); }
+        if (url) { opts.queryParams.push(new RequestOptionsQuery({name: 'url', value: url})); }
+        opts.queryParams.push(new RequestOptionsQuery({name: 'meta', value: meta ? "yes" : "no"}));
 
         return this.request.req(opts)
             .then(result => PinboardPostCollection.fromHttpResponse(result));
@@ -180,9 +180,9 @@ export class PinboardPostsEndpoint {
             throw `Invalid value for 'count': '${count}'. Must be between 0-100.`
         }
         var opts = this.urlOpts.clone({subPath: ['recent']});
-        tag.forEach((t) => { opts.queryParams.push(new QueryParameter({name: 'tag', value: t})); });
+        tag.forEach((t) => { opts.queryParams.push(new RequestOptionsQuery({name: 'tag', value: t})); });
         if (count) {
-            opts.queryParams.push(new QueryParameter({name: 'count', value: String(count)}));
+            opts.queryParams.push(new RequestOptionsQuery({name: 'count', value: String(count)}));
         }
         return this.request.req(opts)
             .then(result => PinboardPostCollection.fromHttpResponse(result));
@@ -210,8 +210,8 @@ export class PinboardTagsEndpoint {
 
     public rename(oldName: string, newName: string): Promise<any> {
         var opts = this.urlOpts.clone({subPath: ['rename']});
-        opts.queryParams.push(new QueryParameter({name: 'old', value: oldName}));
-        opts.queryParams.push(new QueryParameter({name: 'new', value: newName}));
+        opts.queryParams.push(new RequestOptionsQuery({name: 'old', value: oldName}));
+        opts.queryParams.push(new RequestOptionsQuery({name: 'new', value: newName}));
         return this.request.req(opts).then(result => {
             debugLog(`Got result: ${result}`);
             return result;
@@ -304,8 +304,8 @@ export class Pinboard {
         public notesUrlOpts = new RequestOptions({host: 'notes.pinboard.in', basePath: []})
     ) {
         this.baseUrlOpts.queryParams.push(
-            new QueryParameter({name: 'auth_token', value: apitoken, noEncodeValue: true}),
-            new QueryParameter({name: 'format', value: 'json'})
+            new RequestOptionsQuery({name: 'auth_token', value: apitoken, noEncodeValue: true}),
+            new RequestOptionsQuery({name: 'format', value: 'json'})
         );
         this.baseUrlOpts.parseJson = true;
 
