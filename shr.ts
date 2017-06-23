@@ -90,7 +90,7 @@ export class RequestOptions {
         return `${this.protocol}//${this.host}:${this.port}${this.path}`;
     }
 
-    public clone(params?: RequestOptionsCloneParameters): RequestOptions {
+    public clone(cloneParams?: RequestOptionsCloneParameters): RequestOptions {
         var ro = new RequestOptions({
             host: this.host,
             basePath: [],
@@ -103,11 +103,11 @@ export class RequestOptions {
         })
         this.basePath.forEach(bp => ro.basePath.push(bp));
         this.queryParams.forEach(qp => ro.queryParams.push(qp.clone()));
-        if (params.subPath) {
-            params.subPath.forEach(sp => ro.basePath.push(sp));
+        if (cloneParams && cloneParams.subPath) {
+            cloneParams.subPath.forEach(sp => ro.basePath.push(sp));
         }
-        if (params.appendQueryParams) {
-            params.appendQueryParams.forEach(aqp => ro.queryParams.push(aqp.clone()));
+        if (cloneParams && cloneParams.appendQueryParams) {
+            cloneParams.appendQueryParams.forEach(aqp => ro.queryParams.push(aqp.clone()));
         }
         return ro;
     }
@@ -141,17 +141,17 @@ export class HttpsRequest implements SimpleHttpsRequest {
         return new Promise<any>((resolve, reject) => {
             let rejecting = false;
             let ro = options.nodeRequestOpts;
-            let body = [];
+            let body: Buffer[] = [];
             let req = https.request(ro)
 
             req.on('response', response => {
                 if (response.statusCode < 200 || response.statusCode >= 300) { rejecting = true; }
 
-                response.on('data', (chunk) => body.push(chunk));
+                response.on('data', (chunk: Buffer) => body.push(chunk));
 
                 response.on('end', () => {
                     let entireBody = Buffer.concat(body).toString();
-                    let error: Error;
+                    let error: Error | undefined;
                     let resolution: any;
                     resolution = entireBody;
 

@@ -19,19 +19,21 @@ export class ShrMocker implements SimpleHttpsRequest {
 
     public req(options: RequestOptions): Promise<any> {
         debugLog(`${options.method} ${options.fullUrl}`);
-        var match: Promise<any>;
+
+        let resultPromise: Promise<any> | undefined;
         this.ioPairs.forEach((pair) => {
             if (options.equals(pair.opts)) {
-                match = Promise.resolve(pair.result);
+                resultPromise = Promise.resolve(pair.result)
                 return;
             }
         });
-        if (typeof match !== 'undefined') {
-            return match;
+
+        if (resultPromise) {
+            return resultPromise;
         } else {
-            let msg = `${options.method} ${options.fullUrl} (input request) do not match any known input/output pair:\n`;
-            this.ioPairs.forEach(pair => msg += `${pair.opts.method} ${pair.opts.fullUrl}\n`);
-            throw msg;
+            let errMsg = `\n${options.method} ${options.fullUrl} (input request) do not match any known input/output pair:\n`;
+            this.ioPairs.forEach(pair => errMsg += `${pair.opts.method} ${pair.opts.fullUrl}\n`);
+            return Promise.reject(new Error(errMsg));
         }
     }
 }

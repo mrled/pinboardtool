@@ -176,7 +176,7 @@ export class PinboardPostsEndpoint {
         if (tag.length > 3) {
             throw "Only three tags are supported for this request";
         }
-        if (count > 100 || count < 0) {
+        if (typeof count !== 'undefined' && (count > 100 || count < 0)) {
             throw `Invalid value for 'count': '${count}'. Must be between 0-100.`
         }
         var opts = this.urlOpts.clone({subPath: ['recent']});
