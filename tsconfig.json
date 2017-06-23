@@ -1,8 +1,17 @@
 {
+    "compileOnSave": true,
     "compilerOptions": {
-        "target": "es2015",
+        "alwaysStrict": true,
+        "diagnostics": true,
+        "inlineSourceMap": true,
         "module": "commonjs",
-        "sourceMap": true,
-        "strictNullChecks": true
+        "noFallthroughCasesInSwitch": true,
+        "noImplicitAny": true,
+        "noImplicitReturns": true,
+        "noImplicitThis": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "strictNullChecks": true,
+        "target": "es2015"
     }
 }

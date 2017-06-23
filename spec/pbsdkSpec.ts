@@ -1,6 +1,6 @@
 /// <reference path="../node_modules/@types/jasmine/index.d.ts" />
 
-import { Pinboard, PinboardTag, PinboardNote, PinboardPost, PinboardPostsEndpoint, PinboardTagsEndpoint, PinboardNotesEndpoint } from "../pbsdk";
+import { PinboardTag, PinboardNote, PinboardPostsEndpoint, PinboardTagsEndpoint, PinboardNotesEndpoint } from "../pbsdk";
 import { RequestOptions, RequestOptionsQuery } from "../shr";
 import { ShrMockerIoPair, ShrMocker } from "../shr.mocks";
 
@@ -11,11 +11,11 @@ import { ShrMockerIoPair, ShrMocker } from "../shr.mocks";
 describe("Pinboard", () => {
     let authToken = "EXAMPLEAUTHTOKEN";
     let host = "example.com";
-    let basePath = [];
+    let basePath: string[] = [];
     let queryParams = [
         new RequestOptionsQuery({name: 'auth_token', value: authToken, noEncodeValue: true}),
         new RequestOptionsQuery({name: 'format', value: 'json'})];
-    let baseUrlOpts = new RequestOptions({host: host, basePath: [], queryParams: queryParams});
+    let baseUrlOpts = new RequestOptions({host: host, basePath: basePath, queryParams: queryParams});
 
     describe("PinboardPostsEndpoint", ()=>{
 
@@ -45,7 +45,7 @@ describe("Pinboard", () => {
 
     describe("PinboardTagsEndpoint", ()=>{
         describe(".get()", ()=>{
-            let expectedResponse = { '': 1000, mpegs: 324, perversions: 876, 'parts:tits': 123, 'parts:ass': 104};
+            let expectedResponse: any = { '': 1000, mpegs: 324, perversions: 876, 'parts:tits': 123, 'parts:ass': 104};
             let expectedTags: PinboardTag[] = [];
             for (let tagName in expectedResponse) {
                 expectedTags.push(new PinboardTag(tagName, expectedResponse[tagName]));

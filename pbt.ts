@@ -4,7 +4,6 @@ import path = require('path');
 import debug = require('debug');
 let debugLog = debug('pbt');
 import { ArgumentParser } from "argparse";
-import ArgParseModule = require('argparse');
 
 import { Pinboard } from "./pbsdk";
 
@@ -47,7 +46,7 @@ class Startup {
         let postsGetParser = postsSubparsers.addParser('get', {help: 'Get all posts for a single date, or get the result for a single URL.'});
         let postGetParserMeg = postsGetParser.addMutuallyExclusiveGroup({required: false});
         postGetParserMeg.addArgument(['--date', '-d'], {
-            defaultValue: undefined, type: d=>new Date(d),
+            defaultValue: undefined, type: (d: string)=>new Date(d),
             help: 'The date to get posts for. (If unspecified, use the most recent date that a change was made to the Pinboard account.)'
         });
         postGetParserMeg.addArgument(['--url', '-u'], {
@@ -74,15 +73,15 @@ class Startup {
             help: 'Number of results to return. Default is all.'
         });
         postsAllParser.addArgument(['--from-date', '-f'], {
-            defaultValue: undefined, type: d=>new Date(d),
+            defaultValue: undefined, type: (d: string)=>new Date(d),
             help: 'Return only bookmarks created after this time.'
         });
         postsAllParser.addArgument(['--to-date', '--last-date', '-l'], {
-            defaultValue: undefined, type: d=>new Date(d),
+            defaultValue: undefined, type: (d: string)=>new Date(d),
             help: 'Return only bookmarks created before this time.'
         });
 
-        let postsUpdateParser = postsSubparsers.addParser('update', {
+        /*let postsUpdateParser = */ postsSubparsers.addParser('update', {
             help: 'Show the most recent time a bookmark was added, updated, or deleted. (Intended to be used before calling /posts/all to see if data has changed since the last fetch.)'
         });
 
@@ -101,7 +100,7 @@ class Startup {
         let notesParser = subParsers.addParser('notes');
         let notesSubparsers = notesParser.addSubparsers({title: 'notes', dest: 'verb'});
 
-        let notesListParser = notesSubparsers.addParser('list', {help: 'List all notes.'});
+        /* let notesListParser = */ notesSubparsers.addParser('list', {help: 'List all notes.'});
 
         let notesGetParser = notesSubparsers.addParser('get', {help: 'Get a single note.'});
         notesGetParser.addArgument(['noteid'], {help: 'The ID of the note.'});
@@ -130,7 +129,7 @@ class Startup {
 
         let pinboard = new Pinboard(config.apitoken);
 
-        let handleApiFailure = (error) => {
+        let handleApiFailure = (error: any) => {
             console.log(`API error: ${error}`);
             process.exit(1);
         };

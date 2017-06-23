@@ -142,10 +142,23 @@ export class HttpsRequest implements SimpleHttpsRequest {
             let rejecting = false;
             let ro = options.nodeRequestOpts;
             let body: Buffer[] = [];
-            let req = https.request(ro)
 
-            req.on('response', response => {
-                if (response.statusCode < 200 || response.statusCode >= 300) { rejecting = true; }
+            let req: http.ClientRequest;
+
+            if (options.protocol === "https:") {
+                req = https.request(ro);
+            } else if (options.protocol === "http:") {
+                req = http.request(ro);
+            } else {
+                throw new Error(`Unknown protocol ${options.protocol}`);
+            }
+
+            req.on('response', (response: http.IncomingMessage) => {
+                if (response.statusCode) {
+                    if (response.statusCode < 200 || response.statusCode >= 300) { rejecting = true; }
+                } else {
+                    debugLog("Got a response from the webserver that has no .statusCode property");
+                }
 
                 response.on('data', (chunk: Buffer) => body.push(chunk));
 

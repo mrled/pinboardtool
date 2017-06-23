@@ -47,7 +47,7 @@ export class PinboardPost {
             new Date(opts.time),
             PinboardData.boolean(opts.shared),
             PinboardData.boolean(opts.toread))
-        opts.tags.split(' ').forEach(tagName => post.tags.push(new PinboardTag(tagName)));
+        opts.tags.split(' ').forEach((tagName: string) => post.tags.push(new PinboardTag(tagName)));
         return post;
     }
 
@@ -86,7 +86,7 @@ export class PinboardPostCollection {
 
     public static fromHttpResponse(response: any): PinboardPostCollection {
         let collection = new PinboardPostCollection(new Date(response.date), response.user);
-        response.posts.forEach(postObj => collection.posts.push(PinboardPost.fromObj(postObj)));
+        response.posts.forEach((postObj: any) => collection.posts.push(PinboardPost.fromObj(postObj)));
         debugLog(`Got a PostCollection with ${collection.posts.length} posts`);
         return collection;
     }
@@ -151,7 +151,7 @@ export class PinboardPostsEndpoint {
     }
 
     public update(): Promise<Date> {
-        var opts = this.urlOpts.clone({subPath: ['update']});
+        let opts = this.urlOpts.clone({subPath: ['update']});
         return this.request.req(opts).then(result => {
             debugLog(`Last update time: ${result.update_time}`);
             return new Date(result.update_time);
@@ -162,7 +162,7 @@ export class PinboardPostsEndpoint {
         if (tag.length > 3) {
             throw "Only three tags are supported for this request";
         }
-        var opts = this.urlOpts.clone({subPath: ['get']});
+        let opts = this.urlOpts.clone({subPath: ['get']});
         tag.forEach((t) => { opts.queryParams.push(new RequestOptionsQuery({name: 'tag', value: t})); });
         if (date) { opts.queryParams.push(new RequestOptionsQuery({name: 'dt', value: PinboardData.dateFormatter(date)})); }
         if (url) { opts.queryParams.push(new RequestOptionsQuery({name: 'url', value: url})); }
@@ -234,7 +234,7 @@ export class PinboardNotesEndpoint {
         let opts = this.urlOpts.clone({subPath: ['list']});
         return this.request.req(opts).then(response => {
             let notes: PinboardNote[] = [];
-            response.notes.forEach(n => notes.push(PinboardNote.fromHttpResponse(n)));
+            response.notes.forEach((n: any) => notes.push(PinboardNote.fromHttpResponse(n)));
             return notes;
         });
     }
