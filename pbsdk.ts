@@ -291,35 +291,57 @@ export class PinboardNotePostsVirtualEndpoint {
     }
 }
 
+class PinboardApiToken {
+    public static separator: string = ':';
+    constructor(
+        public user: string,
+        public secret: string
+    ) {
+        if (user.length < 1 || secret.length < 1) {
+            throw "Invalid API token string";
+        }
+    }
+    public toString() {
+        return `${this.user}${PinboardApiToken.separator}${this.secret}`
+    }
+    public static fromString(inputString: string): PinboardApiToken {
+        const split = inputString.split(this.separator);
+        let [user, secret] = split;
+        if (split.length != 2) {
+            throw "Invalid API token string";
+        }
+        return new PinboardApiToken(user, secret);
+    }
+}
+
 export class Pinboard {
     public posts: PinboardPostsEndpoint;
     public tags: PinboardTagsEndpoint;
     public notePosts: PinboardNotePostsVirtualEndpoint;
     public notes: PinboardNotesEndpoint;
-    public user: string;
+    public apiToken: PinboardApiToken;
+    public tokenSecret: string;
 
     constructor(
-        apitoken: string,
+        apiToken: string,
         public baseUrlOpts = new RequestOptions({host: 'api.pinboard.in', basePath: ['v1']}),
         public notesUrlOpts = new RequestOptions({host: 'notes.pinboard.in', basePath: []})
     ) {
+        this.apiToken = PinboardApiToken.fromString(apiToken);
+
         this.baseUrlOpts.queryParams.push(
-            new RequestOptionsQuery({name: 'auth_token', value: apitoken, noEncodeValue: true}),
+            new RequestOptionsQuery({name: 'auth_token', value: this.apiToken.toString(), noEncodeValue: true}),
             new RequestOptionsQuery({name: 'format', value: 'json'})
         );
         this.baseUrlOpts.parseJson = true;
 
-        this.user = apitoken.split(':')[0];
-        if (! this.user) {
-            throw `Could not parse username from API token`;
-        }
-        this.notesUrlOpts.basePath.push(`u:${this.user}`)
+        this.notesUrlOpts.basePath.push(`u:${this.apiToken.user}`)
 
         this.posts = new PinboardPostsEndpoint(this.baseUrlOpts);
         this.tags = new PinboardTagsEndpoint(this.baseUrlOpts);
         this.notes = new PinboardNotesEndpoint(this.baseUrlOpts);
         this.notePosts = new PinboardNotePostsVirtualEndpoint(this.notes, this.posts, this.notesUrlOpts);
 
-        debugLog(`Pinboard object for user ${this.user} set up`);
+        debugLog(`Pinboard object for user ${this.apiToken.user} set up`);
     }
 }
