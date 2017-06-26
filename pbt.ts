@@ -7,12 +7,107 @@ import { ArgumentParser } from "argparse";
 
 import { Pinboard } from "./pbsdk";
 
-class Startup {
-    public static main(): number {
-        let homeConfig: string;
-        let dirConfig: string;
-        let config: any;
+interface PinboardToolConfiguration {
+    apitoken?: string;
+}
 
+interface PinboardToolAction {
+    noun?: string;
+    verb?: string;
+    apitoken?: string;
+    least_used?: number;
+    date?: Date;
+    url?: string;
+    tags?: string[];
+    start_index?: number;
+    from_date?: Date;
+    to_date?: Date;
+    results?: number;
+    count?: number;
+    noteid?: string;
+}
+
+// This may get broken out into a real interface later on
+type PinboardToolArguments = PinboardToolAction;
+
+class PinboardTool {
+
+    public main(args: string[]): number {
+        let parsed: any = this.parseArguments(args);
+        let config = this.processConfiguration(parsed);
+        let action = this.processAction(config, parsed);
+        let pinboard = new Pinboard(action.apitoken);
+
+        let handleApiFailure = (error: any) => {
+            console.log(`API error: ${error}`);
+            process.exit(1);
+        };
+
+        switch (action.noun) {
+            case 'tags': {
+                switch (action.verb) {
+                    case 'get': {
+                        pinboard.tags.get().then(tags => {
+                            let msg = `There are ${tags.length} tags`;
+                            if (action.least_used) {
+                                tags.sort((a, b) => a.count - b.count);
+                                tags = tags.filter(tag => tag.count <= action.least_used);
+                                msg = `There are ${tags.length} tags with ${action.least_used} or fewer bookmarks`;
+                            }
+                            tags.forEach(tag => console.log(tag));
+                            console.log(msg);
+                        }, handleApiFailure);
+                        break;
+                    }
+                    case 'rename': {
+                        pinboard.tags.rename(action.old, action.new).then(result => console.log(result));
+                        break;
+                    }
+                    default: throw `Unknown verb ${action.verb}`;
+                }
+                break;
+            }
+            case 'posts': {
+                switch (action.verb) {
+                    case 'get': {
+                        pinboard.posts.get(action.tags, action.date, action.url, false).then(collection => {
+                            console.log("\n" + collection.uiString());
+                        }, handleApiFailure);
+                        break;
+                    }
+                    case 'update': {
+                        pinboard.posts.update().then(result => console.log(`Last update time: ${result.toString()}`), handleApiFailure);
+                        break;
+                    }
+                    case 'recent': {
+                        pinboard.posts.recent(action.tags, action.count).then(collection => console.log(collection.uiString()));
+                        break;
+                    }
+                    default: throw `Unknown verb ${action.verb}`;
+                }
+                break;
+            }
+            case 'notes': {
+                switch (action.verb) {
+                    case 'get': {
+                        pinboard.notePosts.get(action.noteid).then(result => console.log(result.uiString()));
+                        break;
+                    }
+                    case 'list': {
+                        pinboard.notePosts.list().then(results => results.forEach(result => console.log(result.uiString())));
+                        break;
+                    }
+                    default: throw `Unknown verb ${action.verb}`;
+                }
+                break;
+            }
+            default: throw `Unknown noun ${action.noun}`;
+        }
+
+        return 0;
+    }
+
+    private parseArguments(args: string[]): PinboardToolArguments {
         let parser = new ArgumentParser({
             version: '0.0.1',
             addHelp: true,
@@ -105,98 +200,46 @@ class Startup {
         let notesGetParser = notesSubparsers.addParser('get', {help: 'Get a single note.'});
         notesGetParser.addArgument(['noteid'], {help: 'The ID of the note.'});
 
-        let parsed = parser.parseArgs();
+        let parsed = parser.parseArgs(args);
         debugLog(parsed);
+        return parsed;
+    }
 
-        if (! parsed.configfile) {
-            homeConfig = path.join(process.env['HOME'], '.pbt.config.json');
-            dirConfig = path.join(__dirname, 'pbt.config.json');
-            if (fs.existsSync(homeConfig)) {
-                parsed.configfile = homeConfig;
-            } else if (fs.existsSync(dirConfig)) {
-                parsed.configfile = dirConfig;
-            }
+    private processConfiguration(configFile?: string): PinboardToolConfiguration {
+        let homeConfig = path.join(process.env['HOME'], '.pbt.config.json');
+        let dirConfig = path.join(__dirname, 'pbt.config.json');
+        let resolvedConfigPath: string = "";
+        if (configFile) {
+            resolvedConfigPath = path.resolve(configFile);
+        } else if (fs.existsSync(homeConfig)) {
+            resolvedConfigPath = homeConfig;
+        } else if (fs.existsSync(dirConfig)) {
+            resolvedConfigPath = dirConfig;
+        }
+        let config: PinboardToolConfiguration = resolvedConfigPath ? require(resolvedConfigPath) : {};
+
+        return config;
+    }
+
+    private processAction(config: PinboardToolConfiguration, parsedArguments: PinboardToolArguments): PinboardToolAction {
+        // Deep copy 'parsedArguments' directly into the 'action' object
+        let action: PinboardToolAction = Object.assign({}, parsedArguments);
+
+        // Add CLI overrides
+        if (parsedArguments.apitoken) {
+            config['apitoken'] = parsedArguments.apitoken;
         }
 
-        config = parsed.configfile ? require(parsed.configfile) : {};
-        if (parsed.apitoken) {
-            config['apitoken'] = parsed.apitoken;
-        }
-
+        // Validate required properties for Action
+        // Note that we assume parseArguments() has done validation of commandline arguments
         if (! config.apitoken) {
             throw "Missing API token: pass as an argument, set an environment variable, or place in the config file";
         }
 
-        let pinboard = new Pinboard(config.apitoken);
-
-        let handleApiFailure = (error: any) => {
-            console.log(`API error: ${error}`);
-            process.exit(1);
-        };
-
-        switch (parsed.noun) {
-            case 'tags': {
-                switch (parsed.verb) {
-                    case 'get': {
-                        pinboard.tags.get().then(tags => {
-                            let msg = `There are ${tags.length} tags`;
-                            if (parsed.least_used) {
-                                tags.sort((a, b) => a.count - b.count);
-                                tags = tags.filter(tag => tag.count <= parsed.least_used);
-                                msg = `There are ${tags.length} tags with ${parsed.least_used} or fewer bookmarks`;
-                            }
-                            tags.forEach(tag => console.log(tag));
-                            console.log(msg);
-                        }, handleApiFailure);
-                        break;
-                    }
-                    case 'rename': {
-                        pinboard.tags.rename(parsed.old, parsed.new).then(result => console.log(result));
-                        break;
-                    }
-                    default: throw `Unknown verb ${parsed.verb}`;
-                }
-                break;
-            }
-            case 'posts': {
-                switch (parsed.verb) {
-                    case 'get': {
-                        pinboard.posts.get(parsed.tags, parsed.date, parsed.url, false).then(collection => {
-                            console.log("\n" + collection.uiString());
-                        }, handleApiFailure);
-                        break;
-                    }
-                    case 'update': {
-                        pinboard.posts.update().then(result => console.log(`Last update time: ${result.toString()}`), handleApiFailure);
-                        break;
-                    }
-                    case 'recent': {
-                        pinboard.posts.recent(parsed.tags, parsed.count).then(collection => console.log(collection.uiString()));
-                        break;
-                    }
-                    default: throw `Unknown verb ${parsed.verb}`;
-                }
-                break;
-            }
-            case 'notes': {
-                switch (parsed.verb) {
-                    case 'get': {
-                        pinboard.notePosts.get(parsed.noteid).then(result => console.log(result.uiString()));
-                        break;
-                    }
-                    case 'list': {
-                        pinboard.notePosts.list().then(results => results.forEach(result => console.log(result.uiString())));
-                        break;
-                    }
-                    default: throw `Unknown verb ${parsed.verb}`;
-                }
-                break;
-            }
-            default: throw `Unknown noun ${parsed.noun}`;
-        }
-
-        return 0;
+        return action;
     }
+
 }
 
-Startup.main();
+let pbt = new PinboardTool();
+pbt.main(process.argv);
